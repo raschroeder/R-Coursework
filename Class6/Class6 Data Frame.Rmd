@@ -1,0 +1,81 @@
+---
+title: "Class6Example"
+output: html_document
+---
+
+### Build our data frame by HAND
+Our variables are: birth (birth order), lang (language), and a sub ID number (p_id)
+We enter it all by hand and then save it as a bucket with a name
+
+```{r code}
+n=5; k=3 #n is per group and k is the number of groups
+sib.study<-
+  data.frame(pid=seq(1:(k*n)), #pid is the participant ID
+             birth=ordered(
+               c(rep("Single",n), #name the variables and list them all
+                 rep("Twin",n),
+                 rep("Triplet",n))
+             ),
+             lang=c(8,7,10,6,9,4,6,7,4,9,4,4,7,2,3)) #list the values of the DV ("lang"" for language scores)
+
+sib.study
+```
+```{r}
+library(dplyr)
+Means.Table<-sib.study %>%
+  group_by(birth) %>%
+  summarise(N=n(),
+            Means=mean(lang),
+            SS=sum((lang-Means)^2),
+            SD=sd(lang),
+            SEM=SD/N^.5)
+View(Means.Table)
+View(sib.study)
+knitr::kable(Means.Table, digits = 2)
+```
+#Run the ANOVA with raw data!
+```{r}
+library(afex)
+
+ANOVA.sib.Table<-aov_car(lang~birth + Error(pid),
+                         data=sib.study, return='Anova')
+ANOVA.sib.Table
+
+```
+
+```{r}
+library(afex)
+
+ANOVA.sib.Table<-aov_car(lang~birth + Error(pid),
+                         data=sib.study, return='nice') #you can use 'nice' this as a quick way to get all the stats for APA reporting
+ANOVA.sib.Table
+
+```
+
+```{r}
+library(HH)
+hov(lang~birth, data=sib.study)
+hovPlot(lang~birth, data=sib.study)
+```
+
+Testing for normality
+```{r, fig.height=3, fig.width=3}
+qqnorm(sib.study$lang)
+qqline(sib.study$lang)
+
+```
+```{r}
+library(ggplot2)
+
+Means.Table$birth<-factor(Means.Table$birth,
+                          levels = c("Single", "Twin", "Triplet"),
+                          labels = c("Single", "Twin", "Triplet"))
+Plot.1<-ggplot(Means.Table, aes(x = birth, y= Means))+
+  geom_col()+
+  scale_y_continuous(expand = c(0,0))+
+  geom_errorbar(aes(ymax = Means + SEM, ymin= Means - SEM)
+                position=position_dodge(width=0.9), width=0.250)+
+  
+```
+
+

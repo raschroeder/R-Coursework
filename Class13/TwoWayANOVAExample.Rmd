@@ -1,0 +1,82 @@
+---
+title: "TwoWayANOVAExample"
+output: html_document
+---
+
+First, read in the data and rewrite the IVs as factors
+```{r}
+setwd("/Users/rachel/Box\ Sync/R\ Coursework/Class13/")
+
+Example.Data<-read.csv("Raw Data for R.csv")
+
+Example.Data$Amount<-factor(Example.Data$AmtOfInfo,
+                            levels = c(1,2),
+                            labels = c("Low", "High"))
+
+Example.Data$Type<-factor(Example.Data$TypeOfInfo,
+                          levels = c(1,2,3),
+                          labels = c("Watching", "Reading", "Control"))
+
+Example.Data
+```
+
+
+## Check the means and SS calculations with dpylr
+
+```{r}
+library(dplyr)
+Means.Table<-Example.Data %>%
+  group_by(Amount,Type) %>%
+  summarise(N=n(),
+            Means=mean(Perceived_Ability),
+            SS=sum((Perceived_Ability-Means)^2),
+            SD=sd(Perceived_Ability),
+            SEM=SD/N^.5)
+knitr::kable(Means.Table, digits = 2) 
+# Note remember knitr::kable makes it pretty, but you can just call `Means.Table`
+```
+```{r, fig.height=4, fig.width=5}
+library(ggplot2)
+
+Plot.1<-ggplot(Means.Table, aes(x = Type, y = Means, group=Amount))+
+  geom_col(aes(group=Amount, fill=Amount), position=position_dodge(width=0.9))+
+  scale_y_continuous(expand = c(0, 0))+ # Forces plot to start at zero
+  geom_errorbar(aes(ymax = Means + SEM, ymin= Means - SEM), 
+                position=position_dodge(width=0.9), width=0.25)+ #dodge separates the columns into groups
+  scale_fill_manual(values=c("#f44141","#4286f4"))+
+  xlab('')+
+  ylab('Percieved Ability')+
+  theme_bw()+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank(),
+        panel.border=element_blank(),
+        axis.line=element_line(), #this makes the box outline open on top
+        legend.title=element_blank())
+Plot.1
+```
+
+Check Assumptions!
+```{r, fig.height=4, fig.width=7.5}
+library(car)
+leveneTest(Perceived_Ability ~ Amount*Type, data = Example.Data) 
+```
+```{r, fig.height=3, fig.width=3}
+qqnorm(Example.Data$Perceived_Ability)
+qqline(Example.Data$Perceived_Ability)
+```
+```{r}
+shapiro.test(Example.Data$Perceived_Ability)
+```
+
+Run ANOVA
+```{r}
+library(afex)
+
+Nice.JA.Table<-aov_car(Perceived_Ability~Amount*Type + Error(p_number), 
+                  data=Example.Data)
+Nice.JA.Table
+```
+
+
+
+

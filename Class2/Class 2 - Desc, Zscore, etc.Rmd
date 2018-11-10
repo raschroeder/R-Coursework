@@ -1,0 +1,664 @@
+---
+title: 'Class 2: Descriptives, Z-scores, and probability'
+geometry: margin=.5in
+output:
+  pdf_document:
+    highlight: default
+    number_sections: yes
+    toc: yes
+    toc_depth: 3
+  html_document:
+    toc: yes
+    toc_depth: '3'
+fontsize: 11pt
+---
+
+```{r setup, include=FALSE}
+# This stuff applies across R windows
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning =  FALSE)
+knitr::opts_chunk$set(fig.width=5.0)
+knitr::opts_chunk$set(fig.height=3.5)
+knitr::opts_chunk$set(fig.align='center') 
+```
+
+
+# Gaussian Distribution
+- Review: Gaussian distribution = Population: defined by 2 parameters ($\mu$ & $\sigma$), the other two moments (skewness and kurtosis) =  0
+- R will let us simulate a population with $\mu = 100;  \sigma = 15; N = 1e10^6$ [Note: the seed allows all have to identical results]
+    - `rnorm` function allows us to *pass* into it the parameters we want 
+    - our new *object* is Normal.Sample.1
+
+```{r}
+set.seed(666)
+n=1e6 #1 million people
+Mu=100 # Set pop mean
+S = 15 # set pop SD
+Normal.Sample.1<-rnorm(n, mean = Mu, sd = S)
+```
+
+- We can add a histogram, where we define a bin size 
+
+```{r}
+hist(Normal.Sample.1,
+  main="Raw Score Histogram", 
+  xlab="Population Distribution", ylab="Frequency")
+abline(v=100, col="black")
+```
+
+## Movements
+### Mean
+- In R there many ways to do things. There are often packages which people have created to make your life easier
+$$ M = \frac{\Sigma X}{N}$$
+# Double dollar sign writes out the equation
+# if you add M at the end it will print the answer to the equation
+```{r}
+N = length(Normal.Sample.1)
+SumX <- sum(Normal.Sample.1)
+M <- SumX/N
+M
+```
+
+The mean was `r round(M,2)` and close to expected $\mu$ of 100. However, we should use the built-in function, `mean(Normal.Sample.1)`
+# the value can be rounded by using the r round function above
+
+**Note:** In R you can use = or <- to create the object. To help make the code more readable I use = to set *parameters* and <- for objects. R coders in general use <-
+
+### Variance/SD
+Biased Variance with known $\mu$
+$$ \sigma^2 = \frac{\Sigma (X-\mu)^2}{N}$$
+This is a theoretical formula, but in practice we use the **Unbiased Variance** when $\mu$ is unknown.
+$$ S^2 = \frac{\Sigma (X-M)^2}{N-1}$$
+- R vectorizes the data so $\Sigma(X-M)^2$ will follow the PEMDAS, but watch the (). More is better, less can screw you up [e.g., this will fail `sum(Normal.Sample.1-M)^2/N-1` because it R reads is as $S^2 = \Sigma (X-M)^{\frac{2}{N-1}}$
+
+```{r}
+Varience.mu=sum((Normal.Sample.1-M)^2)/(N-1)
+```
+
+The $S^2$ was `r round(Varience.mu,2)` which again is close to $\sigma^2$ of `r 15^2`
+
+The build in function uses $M$ and $N-1$ not $\mu$ and $N$
+
+```{r}
+Varience.M=var(Normal.Sample.1)
+```
+
+### Unbiased SD
+$$ S = \sqrt{S^2}$$
+use the build in function and note its called `sd`. Never name your object just `sd` (it is case sensitive)
+```{r}
+SD.calc = sd(Normal.Sample.1)
+```
+
+### Skewness 
+There are many different formulas for skewness, but here is the basic concept 
+$$Skewness = \frac{\Sigma(X-M)^3 /N}{S^{3}}  $$
+
+To calculate a can install a package to do the work for you:
+```{r}
+# install.packages("moments") # remove hashtag and run it ONCE. Not each time you need it
+library(moments)
+SK.Calc<-skewness(Normal.Sample.1)
+```
+
+Skewness = `r round(SK.Calc,2)`
+
+### Kurtosis 
+There are many different formulas for kurtosis, but here is the basic concept 
+$$Kurtosis = \frac{\Sigma(X-M)^4 /N}{S^{4}} - 3  $$
+
+The kurtosis function is in the `moments` package. *Note: How did I know that? I first googled for "kurtosis in R", found the package, installed it, read the documentation, found the function, realized it did not subtract 3 automatically and used it.*  
+```{r}
+K.Calc<-kurtosis(Normal.Sample.1)-3
+```
+
+Kurtosis = `r round(K.Calc,2)`
+
+# Distributions and Probability
+
+## Probability Density Function (PDF)
+- You can calculate the PDF using this function (but best to have zscored first). Thus the formula works when $M = 0$, $S = 1$. This will allow users to calculate the *probability* related to getting specific scores.
+
+$$ f(x) = \frac{1}{\sqrt{2\pi\sigma^2}} e^{-\frac{(x - \mu)^2}{2 \sigma^2}} $$
+## Zscore formulas
+zscore formula when $\mu$ and $\sigma$ is known 
+
+$$ Z = \frac{X-\mu}{\sigma}$$
+zscore formula when $\mu$ and $\sigma$ is unknown (R default assumption)
+
+$$ Z = \frac{X-M}{S}$$
+We can use the `scale` function: scale(x, center = TRUE, scale = TRUE). We can leave the defaults of center = TRUE (which center the data, do $X-M$ instead of just $X$ in the numerator) and scale = TRUE (divide by $S$). To use defaults, just write nothing. If you want to center and not standardize do, `scale(Normal.Sample.1, scale=FALSE)`. If you want to scale the data but not center the data do, `scale(Normal.Sample.1, center=FALSE)`
+
+```{r}
+?scale # To see arguments for R function
+Normal.Sample.Z<-scale(Normal.Sample.1)
+```
+
+Normal.Sample.Z is now a vector with a length of N 
+
+This does not change the shape of the distribution, but makes it so you can compare between distributions using the same scale, Now, $M = 0$ and $S = 1$
+```{r}
+hist(Normal.Sample.Z,
+  main="Z Score Histogram", 
+  xlab="Z-score", ylab="Frequency")
+```
+
+```{r}
+plot(density(Normal.Sample.Z),
+  main="Probability Density Function", 
+  xlab="z-score", ylab="Probability", 
+  xlim=c(-3.25, 3.25))
+```
+
+- Look a the PDF in your book and you will see this matches. Lets put all into practice! 
+
+## Why You Need to Standardize
+> Imagine you are teaching 3 classes: Statistics, Cognition, & Neuro. You have a student in all three classes, and she wants to how to compare her exam scores between all three classes (with N = 50 in each; but this does not need to be the case). 
+
+Student scores: 
+
+- Stats: $X = 40$
+- Cog: $X = 83$
+- Neuro: $X = 60$
+
+Black line = Student score relative to the class
+
+```{r}
+set.seed(123)
+N=50
+Stats.class<-rnorm(N, mean=60,sd=8)
+hist(Stats.class,
+  main="Raw Score Histogram", 
+  xlab="Stats Exam", ylab="Frequency")
+abline(v=40, col="black")
+Stats.Mean<-mean(Stats.class)
+Stats.sd<-sd(Stats.class)
+```
+
+```{r}
+set.seed(123)
+N=50
+Cognition<-rnorm(N, mean=75,sd=4)
+hist(Cognition,
+  main="Raw Score Histogram", 
+  xlab="Cognitive Exam", ylab="Frequency")
+abline(v=83, col="black")
+Cog.Mean<-mean(Cognition)
+Cog.sd<-sd(Cognition)
+```
+
+```{r}
+set.seed(123)
+N=50
+Neuro<-rnorm(N, mean=40,sd=15)
+hist(Neuro,
+  main="Raw Score Histogram", 
+  xlab="Neuro Exam", ylab="Frequency")
+abline(v=60, col="black")
+Neuro.Mean<-mean(Neuro)
+Neuro.sd<-sd(Neuro)
+```
+
+Course Descriptive 
+
+- Stats: M = `r round(Stats.Mean,3)`, sd = `r round(Stats.sd,3)`
+- Cog: M = `r round(Cog.Mean,3)`, sd = `r round(Cog.sd,3)`
+- Neuro: M = `r round(Neuro.Mean,3)`, sd = `r round(Neuro.sd,3)`
+
+> The student looks at the histograms and the class mean/sd and says so what?  [Now you know why they failed your stats exam]
+
+## Find Percentile
+- We need the z-score for the individual score, so we will use the sample zscore formula to calculate their individual zscore by hand
+
+$$ Z = \frac{X - M}{s} $$
+
+**Z-Scores per Exam**
+
+```{r}
+Stats.Z<-(40 - mean(Stats.class))/sd(Stats.class)
+Cog.Z<-(83 - mean(Cognition))/sd(Cognition)
+Neuro.Z<-(60 - mean(Neuro))/sd(Neuro)
+```
+
+- Stats: Z = `r round(Stats.Z,3)`
+- Cog: Z = `r round(Cog.Z,3)`
+- Neuro: Z = `r round(Neuro.Z,3)`
+
+> Student says so what does all this mean?
+
+** Let's assume the normal distribution and give them their percentile**
+
+
+Relative the normal distribution here is how the three tests are
+
+```{r}
+plot(density(Normal.Sample.Z),
+  main="Probability Density Function", 
+  xlab="z-score", ylab="Probability", 
+  xlim=c(-3.25, 3.25))
+abline(v=Stats.Z, col="red")
+abline(v=Cog.Z, col="blue")
+abline(v=Neuro.Z, col="green")
+```
+
+The percentile can be easier seen in the CDF of these positions. We can do that via the `ecdf` function (which is slow). The area under the curve behind the line percentile score. This can be calculated manually in R, but that is a slow process.  R can look up those values for you with the function `pnorm`. 
+
+
+```{r}
+plot(ecdf(Normal.Sample.Z),
+  main="Cumulative Density Function", 
+  xlab="z-score", ylab="Probability", 
+  xlim=c(-3.25, 3.25))
+abline(v=Stats.Z, col="red")
+abline(v=Cog.Z, col="blue")
+abline(v=Neuro.Z, col="green")
+```
+
+But wait? Do we assume the true population distribution of our sample is normal or should be calculate the percentile for this data based on this distribution (empirically)? Mostly we assume the normal distribution and we use the tables in our book. Also, doing it empirically opens up lot questions we will hold off for now. 
+
+#pnorm will give you the percentiles of the scores
+```{r}
+Stats.Perc<-round(pnorm(Stats.Z)*100,1)
+Cog.Perc<-round(pnorm(Cog.Z)*100,1)
+Neuro.Perc<-round(pnorm(Neuro.Z)*100,1)
+```
+
+- Stats: Percentile = `r Stats.Perc`
+- Cog: Percentile = `r Cog.Perc`
+- Neuro: Percentile = `r Neuro.Perc`
+
+Check this numbers in your tables! 
+
+> You tell the student they need to start doing their stats homework! 
+
+# dplyr
+"dplyr is a grammar of data manipulation, providing a consistent set of verbs that help you solve the most common data manipulation challenges:" see https://dplyr.tidyverse.org/
+- This is very flexiable, complex and powerful package. We will only be talking about the basics today. *This like making a pivot table in Excel*. 
+
+- Group data (group_by)
+- summarise across groups (summarise)
+- Filter groups
+
+
+## Dataframes 
+> We want to see if Chicagoans or New Yorkers like pizza more, and if that depends on the type of pizza. So we can make a data frame which has a between subject variable: 2 levels: City NY (N = 16) vs CHI (N = 24) and each are asked to rate (DV = 1 is terrible to 10 = best pizza ever) deep dish vs thin cust (within-subjects as people eat one slice of each). 
+
+A data frame is a 2-D table with rows (normally cases) and columns (normally variables). Each column can be a factor, numeric (or integer), or character (or string). These can be created on the fly or read into R from a SPSS or CSV file. in R its often easier to use the "long" format (1 score per line). Thus our data.frame will have 16+24 (people) X 2 slices of pizza = 80 rows and 4 columns = Subject ID, City, Pizza type, and Rating. 
+
+To build a data.frame is R we will use some helpful functions, `rep(repeat something, N times)`, `seq(from, to)`, and `rnorm(N, M, S)`.
+
+```{r}
+set.seed(3)
+N.NY  = 16
+N.CHI = 24
+
+#Subject number
+SS<-c(rep(seq(1:N.NY),2),rep(seq(from=N.NY+1, to=N.CHI+N.NY),2))
+CityResidents<-c(rep("New Yorkers",N.NY*2),rep("Chicagoans",N.CHI*2))
+Pizza.Type<-c(rep("Thin Cust",N.NY),rep("Deep Dish",N.NY),
+              rep("Thin Cust",N.CHI),rep("Deep Dish",N.CHI))
+#vector of datapoints
+#ratings 1-10 [1 being bad]
+Pizza.Rating<-c(rnorm(N.NY,mean=8.5,sd=.5),rnorm(N.NY,mean=2,sd=.25),
+                rnorm(N.CHI,mean=5,sd=2),rnorm(N.CHI,mean=7,sd=1))
+
+#Build data frame
+Pizza.Study<-data.frame(
+  subjectID = SS,
+  City = CityResidents,
+  Pizza = Pizza.Type,
+  PizzaRating = Pizza.Rating)
+
+head(Pizza.Study)
+```
+
+## Summarise data
+dplyr works by piping the data %>% = THEN  and it works with a very specific grammar
+
+grammar = Dataframe THEN group it THEN summarise it
+
+
+```{r}
+# install.packages("dplyr") # run this once
+library(dplyr)
+
+Pizza.Study %>% 
+  group_by(City,Pizza) %>% 
+  summarise(M = mean(PizzaRating), 
+            S = sd(PizzaRating),
+            N=length(PizzaRating))
+```
+
+This new object is not saved because we did not make an object for it, Let do that like this:
+
+```{r}
+Pizza.Desc<-
+  Pizza.Study %>% 
+  group_by(City,Pizza) %>% 
+  summarise(M = mean(PizzaRating), 
+            S = sd(PizzaRating),
+            N=length(PizzaRating))
+```
+
+### Summarise calculations on the fly
+- Want the standard error in your summary table? $SE = \frac{S}{\sqrt{N}}$
+- You can do in the fly within the command because they are built as you call them (in order)
+
+```{r}
+Pizza.Desc<-
+  Pizza.Study %>% 
+  group_by(City,Pizza) %>% 
+  summarise(M = mean(PizzaRating), 
+            S = sd(PizzaRating),
+            N=length(PizzaRating),
+            SE = S/sqrt(N))
+
+knitr::kable(Pizza.Desc, digits = 2) # pretty way to make a table
+```
+
+
+### Summarise using more complex stats
+- As long as you have the package still loaded (moments) we can calculate skewness and kurtosis on the fly in dplyr grammar
+- Lets only look at it by city. Note: the N increased not because we have more subjects, but because we have more scores. (If you want N = subjects you can use a different command, which we will review later)
+
+```{r}
+Pizza.Desc.2<-
+  Pizza.Study %>% 
+  group_by(City) %>% 
+  summarise(M = mean(PizzaRating), 
+            S = sd(PizzaRating),
+            N=length(PizzaRating),
+            Skew = skewness(PizzaRating), 
+            Kurt = kurtosis(PizzaRating)-3)
+
+knitr::kable(Pizza.Desc.2, digits = 2) # pretty way to make a table
+# the N produced in this chart is the number of measurements, not the number of subjects
+```
+
+## Filter data
+What if you only want **Chicagoans**? We can filter them. However, the filter function lives in many packages and thus sometimes there can be package conflicts.  To FORCE R to use the filter command from dplyr package, we can call `dplyr::filter`. This means, **grammar** = Dataframe THEN group it THEN Filter it THEN summarise it
+
+```{r}
+Pizza.Desc.CHI.only<-
+  Pizza.Study %>% 
+  dplyr::filter(City=='Chicagoans') %>% 
+  group_by(City,Pizza) %>% 
+  summarise(M = mean(PizzaRating), 
+            S = sd(PizzaRating),
+            N=length(PizzaRating),
+            SE = S/sqrt(N))
+
+knitr::kable(Pizza.Desc.CHI.only, digits = 2) # pretty way to make a table
+# using :: tells it to call the function 'filter' from the dplyr package
+```
+
+
+# GGPLOT2
+Inspired by "The Grammar of Graphics" Leland Wilkinson 1999 
+
+> "Destined to become a landmark in statistical graphics, this book provides a formal description of graphics, particularly static graphics, playing much the same role for graphics as probability theory played for statistics. "Journal of the American Statistical Association Former VP at SPSS Inc. Founder of SYSTAT. Adjunct Professor of Statistics at Northwestern University. He is also affiliated with the Computer Science department at The University of Illinois at Chicago.
+
+- Manual: http://ggplot2.tidyverse.org/reference/
+
+## Grammar 
+- Data (*data = *): **Data.Frame** to be mapped 
+- Aesthetic mapping (*aes( )*): *x = *, *y = *, *group =*  from your data. Can also add additional mapping into the aes:
+    - (*color = *, *shape = *, *size = *, *fill = *, *alpha =*, etc): These can be fixed values are variables
+        - Note: if place these calls into aes(x=IV, y=DV, color=subjectID), then the subject will appear in your legend with those colors. You can move some these maps into geom call to avoid that
+- Geometric object (*geom_*): *bar*, *point*, *line*, *ribbons*, shapes you want to graph based on your *as* 
+    - Position adjustments (*position = *): goes with *geom_* call such as *position_dodge* (don't overlap), *position_identity* (leave as read in), *position_jitter*  (jitters data points in scatterplot)
+- Statistical transformations (*stats_*): On the fly transforms (such as averaging): can be used instead of geoms (*Note*: I prefer to calculate stats outside of the plot when possible as its easier to see what you are doing)
+- Coordinate system (*coord_*): do you want to add *coord_cartesian()*, *coord_polar()*, etc
+- Scales (*scale_*) or simply (xlim, ylim).  Override defaults to control many aspects of the graphs
+- Faceting (*facet_*): visual subsets: two options *grid* or *wrap*
+
+### Layering
+- First, you put on your jacket; then you put on your shoes, next underwear, finally you shower, right?
+- ggplot has very specific order that you should generally follow. 
+    - what is my data, what are my mappings, what are geoms, how should I position them, and last what do I want to do with the look 
+- The order of which you add calls is the order they appear. So later calls will override earlier calls
+
+## Walkthrough
+
+- Step 1: ggplot and aes
+```{r}
+# install.packages("ggplot2") #install only once
+library(ggplot2)
+G1<-ggplot(data = Pizza.Study, aes(x = City , y = PizzaRating))
+G1
+```
+
+- Step 2: add geom
+- This can help you look up all the types
+
+```{r, eval=FALSE}
+help.search("geom_", package = "ggplot2")
+# using this, you can search the different shapes that are options within geom_
+```
+
+- let's start with points
+
+```{r}
+G2<-G1+geom_point()
+G2
+#adding points to the empty plot
+```
+
+- Step 3: facet grid by `Pizza` type condition
+
+```{r}
+G3<-G2+facet_grid(~Pizza)
+G3
+```
+
+- Step 4: Fancy the plot up
+
+- Add a theme
+```{r}
+G4<-G3+theme_bw()
+G4
+```
+
+- Modify the theme to change the major & minor grid lines
+
+```{r}
+G4b<-G4+theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank())
+G4b
+```
+
+- Change the x and y labels
+
+```{r}
+G4c<-G4b+xlab("City of Residence")+ylab("Pizza Liking score (1-10)")
+G4c
+```
+
+- Step 5: Boxplots
+
+```{r}
+G5<-G4c + geom_boxplot()
+G5
+```
+
+Why are the dots behind the boxes? Because we layered it that way. If you want to remove them, we can rebuild the whole plot in one step without dots
+
+- Step 5a: Boxplots part 2
+
+```{r}
+G5a<-ggplot(data = Pizza.Study, aes(x = City , y = PizzaRating))+
+     facet_grid(~Pizza)+
+     xlab("City of Residence")+ylab("Pizza Liking score (1-10)")+
+     geom_boxplot()+
+     theme_bw()+
+     theme(panel.grid.major = element_blank(),
+           panel.grid.minor = element_blank())
+  
+G5a
+```
+
+The box = 68% of the data. The line in the box is the median.  The Whiskers are 95% percentile. The dots are outliers. 
+
+- Step 6: color the groupings by adding aes to the boxplot and this gives us a legend.
+
+```{r}
+G6<-ggplot(data = Pizza.Study, aes(x = City , y = PizzaRating))+
+     facet_grid(~Pizza)+
+     xlab("City of Residence")+ylab("Pizza Liking score (1-10)")+
+     geom_boxplot(aes(fill=Pizza))+
+     theme_bw()+
+     theme(panel.grid.major = element_blank(),
+           panel.grid.minor = element_blank())
+  
+G6
+```
+
+# dplyr to ggplot2
+Most psychologists prefer bar plots over boxplots. To do this, we can combine dplyr summaries with ggplot2. We will use our already created `Pizza.Desc` object
+
+```{r}
+knitr::kable(Pizza.Desc, digits = 2) # pretty way to make a table
+```
+
+Using this object, we will need to redo our whole plot
+
+## Plot 1
+```{r}
+BarPlot1<-ggplot(data = Pizza.Desc, aes(x = City , y = M))+
+     facet_grid(~Pizza)+
+     xlab("City of Residence")+ylab("Pizza Liking score (1-10)")+
+     geom_col(aes(fill=Pizza))+
+     geom_errorbar(aes(ymin = M-SE, ymax = M+SE), width = 0.25)+
+     theme_bw()+
+     theme(panel.grid.major = element_blank(),
+           panel.grid.minor = element_blank())
+BarPlot1
+```
+
+## Plot 2
+You can also color the errors bars
+
+```{r}
+BarPlot2<-ggplot(data = Pizza.Desc, aes(x = City , y = M))+
+     facet_grid(~Pizza)+
+     xlab("City of Residence")+ylab("Pizza Liking score (1-10)")+
+     geom_col(aes(fill=Pizza))+
+     geom_errorbar(aes(ymin = M-SE, ymax = M+SE, color=Pizza), width = 0.25)+
+     theme_bw()+
+     theme(panel.grid.major = element_blank(),
+           panel.grid.minor = element_blank())
+BarPlot2
+```
+
+## Plot 3
+What if you don't like the facets? First, you must 'dodge' the bars,  and add a 'group' variable to apply to ALL the layers.
+You can also add custom HTML colors (google 'HTML color picker'). You can fix the y-axis as well
+
+```{r}
+dodge <- position_dodge(width=0.9)
+BarPlot3<-ggplot(data = Pizza.Desc, aes(x = City , y = M, group=Pizza))+
+     xlab("City of Residence")+ylab("Pizza Liking score (1-10)")+
+     coord_cartesian(ylim=c(1,10))+scale_y_continuous(breaks = seq(1, 10, 1))+ 
+     geom_col(position = dodge, aes(fill=Pizza))+
+     geom_errorbar(aes(ymin = M-SE, ymax = M+SE), position =dodge, width = 0.25)+
+     scale_fill_manual(values=c('#4286f4','#f44141'))+
+     theme_bw()+
+     theme(panel.grid.major = element_blank(),
+           panel.grid.minor = element_blank())
+BarPlot3
+```
+
+# Practice
+> Question is coffee consumption related to stats perfromance? 
+
+dataset from: https://web.stanford.edu/class/psych252/data/index.html
+
+```{r}
+setwd('/Users/rachel/Box\ Sync/R\ Coursework/Class2/')
+caffeine<-read.csv('caffeine.csv')
+```
+
+- coffee: each group had either 0 cups, 2 cups, or 4 cups (coded in the dataset as group 1, 2, or 3)
+- perf: score on a stats quiz with 10 problems
+- numprob: number of problems attempted (hyperactivity)
+- accur: likelihood of getting a problem right if they tried (better success)
+
+
+```{r}
+caffeine$coffee.F<-factor(caffeine$coffee,
+                       levels=c(1,2,3),
+                       labels=c("0 Cups","2 Cups","4 Cups"))
+```
+
+## Task 1: group and summarize the data
+IV = coffee.F
+DV = perf
+*Advanced IV*: Try to do a median split and make two groups based on numprob (hint look up `if_else`)
+
+```{r}
+str(caffeine)
+library(dplyr)
+caffeine$try<-if_else(caffeine$numprob > median(caffeine$numprob), "Nerd", "Slacker")
+str(caffeine)
+
+Caffeine.Desc<-
+  caffeine %>% 
+  group_by(coffee.F,perf) %>% 
+  summarise(M = mean(perf), 
+            S = sd(perf),
+            N=length(perf),
+            SE = S/sqrt(N))
+
+Caffeine.Desc<-
+  caffeine %>% 
+  group_by(coffee.F, try) %>% 
+  summarise(M = mean(perf), 
+            S = sd(perf),
+            N=length(perf),
+            SE = S/sqrt(N))
+
+knitr::kable(Caffeine.Desc, digits = 2) # pretty way to make a table
+```
+
+
+```{r}
+library(ggplot2)
+G1<-ggplot(data = caffeine, aes(x = coffee.F, y = perf))+
+  geom_point()
+
+G1
+```
+
+## Task 2: Make a bar plot 
+*Advanced is to try to with the extra IV*
+
+```{r}
+G2<-ggplot(data = caffeine, aes(x = coffee.F, y = M, group=coffee.F))+
+  xlab("Coffee Dose")+ylab("Performance")
+  geom_col(aes(fill=coffee.F))+
+  geom_errorbar(aes(ymin = M-SE, ymax = M+SE, color=perf), width = 0.25)+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank())
+
+G2
+```
+
+## Task 3: Make a scatter plot
+X = numprob, Y = perf
+*advanced color the dots by coffee and add a best fit line for each group*
+```{r}
+G3<-ggplot(data = caffeine, aes(x = numprob, y = perf))+
+  geom_point(aes(fill=perf))+
+  geom_point(size=2, shape=23)+
+  geom_smooth(method=lm)
+  theme_bw()+
+  theme(panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank())
+
+G3
+```
+
+
+
