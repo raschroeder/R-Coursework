@@ -1,0 +1,181 @@
+ID,Modality,Context,Arousal,BetweenID
+1,Sound,No Context,3,1
+1,Sight,No Context,1,2
+1,Sound & Sight,No Context,5,3
+1,Sound,Context,6,4
+1,Sight,Context,0,5
+1,Sound & Sight,Context,6,6
+2,Sound,No Context,2,7
+2,Sight,No Context,3,8
+2,Sound & Sight,No Context,3,9
+2,Sound,Context,4,10
+2,Sight,Context,0,11
+2,Sound & Sight,Context,0,12
+3,Sound,No Context,5,13
+3,Sight,No Context,3,14
+3,Sound & Sight,No Context,4,15
+3,Sound,Context,9,16
+3,Sight,Context,0,17
+3,Sound & Sight,Context,10,18
+4,Sound,No Context,3,19
+4,Sight,No Context,1,20
+4,Sound & Sight,No Context,0,21
+4,Sound,Context,0,22
+4,Sight,Context,3,23
+4,Sound & Sight,Context,1,24
+5,Sound,No Context,6,25
+5,Sight,No Context,5,26
+5,Sound & Sight,No Context,9,27
+5,Sound,Context,7,28
+5,Sight,Context,8,29
+5,Sound & Sight,Context,10,30
+6,Sound,No Context,5,31
+6,Sight,No Context,3,32
+6,Sound & Sight,No Context,1,33
+6,Sound,Context,6,34
+6,Sight,Context,0,35
+6,Sound & Sight,Context,5,36
+7,Sound,No Context,7,37
+7,Sight,No Context,3,38
+7,Sound & Sight,No Context,4,39
+7,Sound,Context,8,40
+7,Sight,Context,5,41
+7,Sound & Sight,Context,10,42
+8,Sound,No Context,7,43
+8,Sight,No Context,2,44
+8,Sound & Sight,No Context,7,45
+8,Sound,Context,7,46
+8,Sight,Context,8,47
+8,Sound & Sight,Context,6,48
+9,Sound,No Context,7,49
+9,Sight,No Context,4,50
+9,Sound & Sight,No Context,5,51
+9,Sound,Context,5,52
+9,Sight,Context,9,53
+9,Sound & Sight,Context,10,54
+10,Sound,No Context,3,55
+10,Sight,No Context,0,56
+10,Sound & Sight,No Context,4,57
+10,Sound,Context,5,58
+10,Sight,Context,0,59
+10,Sound & Sight,Context,10,60
+11,Sound,No Context,3,61
+11,Sight,No Context,1,62
+11,Sound & Sight,No Context,2,63
+11,Sound,Context,1,64
+11,Sight,Context,0,65
+11,Sound & Sight,Context,2,66
+12,Sound,No Context,9,67
+12,Sight,No Context,6,68
+12,Sound & Sight,No Context,9,69
+12,Sound,Context,7,70
+12,Sight,Context,6,71
+12,Sound & Sight,Context,10,72
+13,Sound,No Context,3,73
+13,Sight,No Context,0,74
+13,Sound & Sight,No Context,0,75
+13,Sound,Context,6,76
+13,Sight,Context,4,77
+13,Sound & Sight,Context,5,78
+14,Sound,No Context,8,79
+14,Sight,No Context,0,80
+14,Sound & Sight,No Context,4,81
+14,Sound,Context,8,82
+14,Sight,Context,3,83
+14,Sound & Sight,Context,10,84
+15,Sound,No Context,4,85
+15,Sight,No Context,2,86
+15,Sound & Sight,No Context,7,87
+15,Sound,Context,7,88
+15,Sight,Context,0,89
+15,Sound & Sight,Context,7,90
+16,Sound,No Context,6,91
+16,Sight,No Context,3,92
+16,Sound & Sight,No Context,3,93
+16,Sound,Context,8,94
+16,Sight,Context,5,95
+16,Sound & Sight,Context,5,96
+17,Sound,No Context,3,97
+17,Sight,No Context,2,98
+17,Sound & Sight,No Context,5,99
+17,Sound,Context,6,100
+17,Sight,Context,0,101
+17,Sound & Sight,Context,3,102
+18,Sound,No Context,5,103
+18,Sight,No Context,0,104
+18,Sound & Sight,No Context,6,105
+18,Sound,Context,10,106
+18,Sight,Context,0,107
+18,Sound & Sight,Context,5,108
+19,Sound,No Context,6,109
+19,Sight,No Context,1,110
+19,Sound & Sight,No Context,8,111
+19,Sound,Context,7,112
+19,Sight,Context,2,113
+19,Sound & Sight,Context,10,114
+20,Sound,No Context,4,115
+20,Sight,No Context,3,116
+20,Sound & Sight,No Context,4,117
+20,Sound,Context,5,118
+20,Sight,Context,0,119
+20,Sound & Sight,Context,5,120
+21,Sound,No Context,6,121
+21,Sight,No Context,7,122
+21,Sound & Sight,No Context,4,123
+21,Sound,Context,2,124
+21,Sight,Context,6,125
+21,Sound & Sight,Context,10,126
+22,Sound,No Context,5,127
+22,Sight,No Context,1,128
+22,Sound & Sight,No Context,6,129
+22,Sound,Context,5,130
+22,Sight,Context,5,131
+22,Sound & Sight,Context,10,132
+23,Sound,No Context,5,133
+23,Sight,No Context,1,134
+23,Sound & Sight,No Context,0,135
+23,Sound,Context,6,136
+23,Sight,Context,2,137
+23,Sound & Sight,Context,2,138
+24,Sound,No Context,7,139
+24,Sight,No Context,6,140
+24,Sound & Sight,No Context,7,141
+24,Sound,Context,8,142
+24,Sight,Context,2,143
+24,Sound & Sight,Context,5,144
+25,Sound,No Context,5,145
+25,Sight,No Context,3,146
+25,Sound & Sight,No Context,4,147
+25,Sound,Context,6,148
+25,Sight,Context,4,149
+25,Sound & Sight,Context,6,150
+26,Sound,No Context,5,151
+26,Sight,No Context,2,152
+26,Sound & Sight,No Context,4,153
+26,Sound,Context,8,154
+26,Sight,Context,10,155
+26,Sound & Sight,Context,10,156
+27,Sound,No Context,6,157
+27,Sight,No Context,5,158
+27,Sound & Sight,No Context,8,159
+27,Sound,Context,5,160
+27,Sight,Context,6,161
+27,Sound & Sight,Context,9,162
+28,Sound,No Context,5,163
+28,Sight,No Context,7,164
+28,Sound & Sight,No Context,6,165
+28,Sound,Context,6,166
+28,Sight,Context,10,167
+28,Sound & Sight,Context,10,168
+29,Sound,No Context,7,169
+29,Sight,No Context,3,170
+29,Sound & Sight,No Context,5,171
+29,Sound,Context,6,172
+29,Sight,Context,4,173
+29,Sound & Sight,Context,10,174
+30,Sound,No Context,7,175
+30,Sight,No Context,5,176
+30,Sound & Sight,No Context,10,177
+30,Sound,Context,8,178
+30,Sight,Context,0,179
+30,Sound & Sight,Context,10,180

@@ -1,0 +1,513 @@
+---
+title: "Correlation and Linear Regression"
+geometry: margin=.5in
+output:
+  pdf_document:
+    highlight: default
+    number_sections: yes
+    toc: yes
+    toc_depth: 3
+  html_document:
+    toc: yes
+    toc_depth: '3'
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning =  FALSE)
+knitr::opts_chunk$set(fig.width=3.75)
+knitr::opts_chunk$set(fig.height=3.5)
+knitr::opts_chunk$set(fig.align='center') 
+```
+
+\pagebreak
+
+# Correlations
+
+Everything correlates with everything, which Paul Meehl calls the "crud factor" (aka Ambient Correlational Noise) (See Meehl, 1990ab and Lykken, 1968 cited by Meehl). Our goal today is to determine how much and we will deal with 2 variables today, but we will soon explore the problems with 3 or more variables. 
+
+A few popular correlations between two variables: 
+
+- Pearson's r (interval by interval) [for population = $\rho$, for sample = $r$]
+- Spearman's rho  (interval by ordinal) [for population = $\rho_{s}$, for sample = $r_s$]
+- Kendall's tau [$t$] (interval by ordinal or ordinal by ordinal) like Spearman's, but more accurate with small samples 
+- Point-by-serial (interval by dichotomous)
+- Polychoric (ordinal vs ordinal) [used more in psychometrics or factor analysis of ordinal by ordinal]
+- Tetrachroic (dichotomous vs dichotomous) [same as above]
+
+
+## Pearson's Correlation
+Most common type you will encounter and is a parametric method. 
+
+$$r_{xy}=\frac{\sum{xy}}{\sqrt{\sum{x^2}\sum{y^2}}}$$
+
+- Numerator = How much they vary together (covariance)
+- Denominator = How much they vary alone (variance)
+- Values is bounded between -1 and 1
+
+## Pearson's Correlation
+Let's create two random normal variables that correlate with each other. 
+
+### Simulate Data
+We will use the `mvrnorm` function (multivariate normal distribution) from the *MASS* package, but to do this we need to make a **covariance** matrix with a $r = .60$ and set the mean values for each variable (which I will set to 5 for each)
+ 
+```{r}
+#Set params
+Means.XY<- c(5,5) #set the means of X and Y variables
+r=.6 #Correlation value
+CovMatrix.XY <- matrix(c(1,r,
+                         r,1),2,2) # creates the covariate matrix 
+
+# Build the correlated variables using . 
+# Note: empirical=TRUE means make the correlation EXACTLY r. 
+# empirical=FALSE, the correlation value would be normally distributed around r
+library(MASS) #create data
+CorrData<-mvrnorm(n=100, mu=Means.XY,Sigma=CovMatrix.XY, empirical=TRUE)
+
+#Convert them to a "Data.Frame", which is like SPSS data window
+CorrData<-as.data.frame(CorrData)
+#lets add our labels to the vectors we created
+colnames(CorrData) <- c("Happiness","IceCream")
+```
+
+### Plot the data
+
+```{r}
+#make the scatter plot
+library(ggpubr) #graph data
+ggscatter(CorrData, x = "IceCream", y = "Happiness",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE, # Add confidence interval
+   cor.coef = FALSE, # Add correlation coefficient. see ?stat_cor
+   )
+
+```
+
+### Run Pearson's r
+
+The `cor.test` function runs the Pearson’s correlation.
+
+```{r, echo=TRUE}
+Corr.Result.1<-cor.test(CorrData$Happiness, CorrData$IceCream, 
+         method = c("pearson"))
+```
+### Report them in APA format
+
+The `cor_apa` function in the APA package will report it in APA format for you. 
+
+```{r}
+library(apa)
+cor_apa(Corr.Result.1,format ="text")
+```
+
+### Pearson's correlation is scale independent! 
+No matter the mean differences or range of scores, the Pearson's r will give the same results. We can also z-score the data and get the same result. However, if they are scaled non-linearly (sqrt, ^2, log,...) the correlation will change. 
+
+#### Lets add (change the mean)
+
+```{r}
+Happiness.big<-CorrData$Happiness+1000
+IceCream<-CorrData$IceCream
+cor_apa(cor.test(Happiness.big, IceCream, 
+         method = c("pearson")),format ="text")
+```
+
+#### Z-scored
+
+```{r}
+Happiness.z<-scale(CorrData$Happiness)
+IceCream.z<-scale(CorrData$IceCream)
+cor_apa(cor.test(Happiness.z, IceCream.z, 
+         method = c("pearson")),format ="text")
+```
+
+#### What happens if I LINEARLY scale them differently?
+
+```{r}
+cor_apa(cor.test(Happiness.big, IceCream.z, 
+         method = c("pearson")),format ="text")
+```
+
+#### What happens if I NON-LINEARLY scale them differently?
+
+```{r}
+Happiness<-CorrData$Happiness # orginal
+IceCream.sq4<-(CorrData$IceCream)^4 #Non-linear
+cor_apa(cor.test(Happiness, IceCream.sq4, 
+         method = c("pearson")),format ="text")
+```
+
+### Pearson's: Let visualize our result
+- Overlap between the two variables is defined by $r^2$
+
+```{r,fig.width=5, fig.height=4}
+ # lets us plot our results (like the book)
+library(VennDiagram)
+# calculate r-squared
+overlap=r^2 
+
+Simple.Corr.Venn<-draw.pairwise.venn(1, 1, overlap, c("Happiness", "IceCream"))
+grid.draw(Simple.Corr.Venn)
+```
+
+## Non-Parametric Correlations
+Spearmen and Kendall correlation can be used for ordinal data, but should be used if you have a "bend" (non-linear relationship) between variables.  
+
+### Spearmen's Correlation
+Spearman is basically a Pearson Correlation on rank-ordered data.  Let's rank order our random correlated data.  You must rank each variable independently first (where ties are averaged).
+
+```{r, echo=TRUE, warning=FALSE}
+CorrData$X.rank<-rank(CorrData$Happiness)
+CorrData$Y.rank<-rank(CorrData$IceCream)
+
+ggscatter(CorrData, x = "X.rank", y = "Y.rank",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE, # Add confidence interval
+   )
+
+cor_apa(cor.test(CorrData$Y.rank, CorrData$X.rank, method = c("pearson")))
+```
+
+You should use the use the built-in Spearman correlation (`cor.test`, but pass **method = c("spearman")**) because the pvalues are calculated differently and ranks the raw data automatically. 
+
+```{r}
+# APA format (note the S should be subscript)
+cor_apa(cor.test(CorrData$Y, CorrData$X, 
+         method = c("spearman")),format ="text")
+```
+
+
+#### Pearson vs Spearmen's Correlation for slight nonlinearity 
+Let's say you get some data and clearly there is a slight nonlinearity in the relationship between the two variables. Pearson is designed for linear relationships and we can see the problem in our fitted line below. 
+
+```{r}
+CorrNL<-data.frame(Var1=c(0,1,3,5,7,9,12,15,18),
+                   Var2=c(0,3,12,18,19,20,21,22,23))
+
+ggscatter(CorrNL, x = "Var1", y = "Var2",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE, # Add confidence interval
+   )
+```
+
+```{r, echo=FALSE}
+cor_apa(cor.test(CorrNL$Var1, CorrNL$Var2, method = c("pearson")))
+```
+
+If we switch to a Spearman correlation the data are converted to ranks and the "bump" is now gone and our correlation gets stronger. S
+
+
+```{r}
+CorrNL$Var1.rank<-rank(CorrNL$Var1)
+CorrNL$Var2.rank<-rank(CorrNL$Var2)
+
+ggscatter(CorrNL, x = "Var1.rank", y = "Var2.rank",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE, # Add confidence interval
+   )
+```
+
+
+```{r, echo=FALSE}
+cor_apa(cor.test(CorrNL$Var1, CorrNL$Var2, method = c("spearman")))
+```
+
+
+## Point-by-Serial Correlation
+
+This time lets make up some data on the fly
+
+```{r, echo=TRUE, warning=FALSE}
+set.seed(42)
+Ratings<-c(rnorm(25,mean=5,sd = .5),rnorm(25,mean=2,sd = .5))
+Flavors<-c(rep(0,25),c(rep(1,25)))
+FlavorNames<-c(rep("Cookie Dough",25),c(rep("Rum-Raisin",25)))
+
+#Build data frame
+Ice.Cream.Data<-data.frame(
+  Ratings = Ratings,
+  Flavors = Flavors,
+  Names = FlavorNames)
+head(Ice.Cream.Data)
+
+ggscatter(Ice.Cream.Data, x = "Flavors", y = "Ratings",
+   add = "reg.line",  # Add regression line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE, # Add confidence interval
+   )
+
+```
+
+### Kendall's Tau
+Kendall tau will always be more conservative than spearman correlation and is generally more robust (`cor.test`, but pass **method = c("kendall")**). It is safer to use but less widely known.
+
+```{r}
+# APA format (note the S should be subscript)
+cor_apa(cor.test(CorrData$Y, CorrData$X, 
+         method = c("kendall")),format ="text")
+```
+
+### Calculation of Point-by Serial
+using the `polycor` package, we can run **polyserial** function using maximum-likelihood estimation (generally more accurate). 
+
+```{r}
+library(polycor) #Advanced Correlations
+with(Ice.Cream.Data, 
+     polyserial(Flavors,Ratings, ML=TRUE))
+```
+
+
+# Regression
+- Correlation and regression are similar
+- Correlation determines the standardized relationship between X and Y
+- Linear regression = 1 DV and 1 IV, where the relationship is a straight line
+- Linear regression determines how X predicts Y
+- Multiple (linear) regression = 1 DV and 2+ IV (also straight lines)
+- Multiple regression determines how X,z, and etc, predict Y [next week]
+
+## Basic Regression Equation
+- Linear Regression equation you learned when younger was probably $y = MX + b$
+- $y$ = predict value
+- $M$ = slope
+- $X$ = Variable used to predict Y
+- $b$ = intercept
+
+## Modern Regression Equation
+- $Y=B_{YX}X + B_0 + e$
+- $Y$ = predict value
+- $B_{YX}$ = slope
+- $B_{0}$ = intercept
+- $e$ = error term (observed - predicted). Also called the residual.
+
+## Ice Cream example
+- Specify the model with the lm function. 
+- We are going to predict happiness scores from ice cream! 
+
+```{r, echo=TRUE, warning=FALSE}
+Happy.Model.1<-lm(Happiness~IceCream,data = CorrData)
+summary(Happy.Model.1)
+```
+
+
+### Intercept
+- `r Happy.Model.1$coefficients[1]` is where the line hit the y-intercept (when happiness = 0). 
+
+### Slope
+- `r Happy.Model.1$coefficients[2]` is **the rise over run**
+- for each `r Happy.Model.1$coefficients[2]` change in ice cream value, there is a corresponding change in happiness!
+- so we can predict happiness from ice cream score: 
+
+> (`r Happy.Model.1$coefficients[2]` * 5 spoons of ice cream + baseline happiness intercept: `r Happy.Model.1$coefficients[1]`) 
+=  `r Happy.Model.1$coefficients[2] * 5 +Happy.Model.1$coefficients[1]`
+
+- This is your *predicted* happiness score if you had 5 spoons of ice cream
+
+### Error for this prediction?
+
+R will do all the prediction for us for each value of ice cream
+residuals =  **observed** - **predicted**
+
+- Red dots = **observed** *above* predictor line
+- Blue dots = **observed** *below* predictor line
+- the stronger the color, the more an impact that point has in pulling the line in its direction
+- Hollow dots = **predicted**
+- The gray lines are the distance between **observed** and **predicted** values!
+
+What should the mean of the residuals equal?
+
+
+```{r, echo=TRUE, warning=FALSE}
+CorrData$predicted <- predict(Happy.Model.1)   # Save the predicted values with our real data
+CorrData$residuals <- residuals(Happy.Model.1) # Save the residual values
+
+library(ggplot2) 
+ggplot(data = CorrData, aes(x = IceCream, y = Happiness)) +
+  geom_smooth(method = "lm", se = FALSE, color = "lightgrey") +  # Plot regression slope
+  geom_point(aes(color = residuals)) +  # Color mapped here
+  scale_color_gradient2(low = "blue", mid = "white", high = "red") +  # Colors to use here
+  guides(color = FALSE) +
+  geom_segment(aes(xend = IceCream, yend = predicted), alpha = .2) +  # alpha to fade lines
+  geom_point(aes(y = predicted), shape = 1) +
+  theme_bw()  # Add theme for cleaner look
+
+```
+
+### Ordinary least squares (OLS)
+- Linear regression finds the best fit line by trying to minimize the sum of the squares of the differences between the observed responses those predicted by the line. 
+- OLS computationally simple to get the slope value, but is inaccurate 
+
+$$B_{YX}=\frac{\sum{XY}-\frac{1}{n}\sum{X}\sum{Y}}{\sum{x^2}-\frac{1}{n}\sum{x}^2} = \frac{Cov_{XY}}{var_x}$$
+
+- Modern methods use an alternative (ML, REML) we will examine later when we get to GLM
+
+
+## SE on the terms in the models (how good is the fit?)
+- Residual Standard error = $\sqrt\frac{\sum{e^2}}{n-2}$
+- in R language: 
+
+```{r, echo=TRUE, warning=FALSE}
+n=length(CorrData$residuals)
+
+RSE = sqrt(sum(CorrData$residuals^2) / (n-2))
+RSE
+```
+
+- So, our error on the prediction is `r RSE` happiness points based on our model.  
+
+### SE on the Intercept
+- Intercept Standard error = $RSE\sqrt {\frac{1}{n}+\frac{M_x^2}{(n-1)var_x}}$
+- in R language: 
+  
+```{r, echo=TRUE, warning=FALSE}
+ISE = RSE*(sqrt( 1 / n + mean(CorrData$IceCream)^2 / (n - 1)*var(CorrData$IceCream)))
+ISE
+```
+
+### SE on the Slope
+- Slope Standard error = $\frac{sd_y}{sd_x}\sqrt{\frac{1 - r_YX^2}{n-2}}$
+- in R language: 
+  
+```{r, echo=TRUE, warning=FALSE}
+#lets extract the r2 from the model
+r2.model<-summary(Happy.Model.1)$r.squared
+
+SSE = sd(CorrData$Happiness)/sd(CorrData$IceCream) * sqrt((1- r2.model)/ (n - 2))
+SSE
+```
+
+### t-tests on slope and intercept and $r^2$ value
+- Values are tested against 0, so its all one sample t-tests
+- slope: $t = \frac{B_{YX} - H_0}{SE_{B_{YX}}}$
+- intercept: $t = \frac{B_{0} - H_0}{SE_{B_{0}}}$
+
+$r^2$ is a little different as its a correlation value
+
+- correlations are not normally distributed
+- Fisher created a conversion for r to make it a z (called Fishers' $r$ to $Z$)
+- $r^2$: $t = \frac{r_{XY}\sqrt{n-2}-H_0}{\sqrt{1-r_{XY}^2}}$ , where $df = n - 2$
+- its often given for as an F value, remember $t^2 = F$ 
+
+```{r, echo=TRUE}
+#intercept
+t.I= Happy.Model.1$coefficients[1]/ISE
+t.I
+#Slope
+t.S= Happy.Model.1$coefficients[2]/SSE
+t.S
+
+# For r-squared
+t.r2xy = r2.model^.5*sqrt(n-2)/sqrt(1-r2.model)
+F.r2xy = t.r2xy^2
+F.r2xy
+```
+
+Note: We are testing null hypothesis value for slope, i.e., null = 0. But it's a terrible guess. Everything correlates with everything, so it's important to keep this in mind moving forward. So that would be the NILL hypothesis. *NILL can be tested better with bootstrapping*. 
+
+## Regression in ANOVA format
+
+- You can also report the results of all the predictors (if you have multiple) in ANOVA style format (F-test we calculated above on $r^2$)
+- This is useful in multiple regression as it tell your if your overall set of predictors is significant
+
+```{r, echo=TRUE}
+anova(Happy.Model.1)
+```
+
+# Bootstrapped Regression
+We can bootstrap the parameters (Intercept and slope and overall $R^2$)
+
+## Bootstrapped Parameters
+We will use the `car` (which calls the `boot` package) and it will give Bca confidence intervals. see https://socialsciences.mcmaster.ca/jfox/Books/Companion/appendix/Appendix-Bootstrapping.pdf
+
+```{r, echo=TRUE, fig.width=6.25, fig.height=5.0}
+set.seed(666)
+library(boot)
+library(car)
+# Boot the model fit, 2K times
+BootParms <-Boot(Happy.Model.1, R = 2000)
+
+# View results
+hist(BootParms, legend="separate")
+
+# get 95% confidence interval 
+confint(BootParms, level=.95)
+```
+
+## Bootstrapped R-Squared
+To get $R^2$ is a little harder. We must write a function to extract $R^2$ from the analysis. See https://www.statmethods.net/advstats/bootstrapping.html
+
+```{r, echo=TRUE}
+set.seed(666)
+# function to obtain R-Squared from the data 
+rsq <- function(formula, data, indices) {
+  d <- data[indices,] # allows boot to select sample 
+  fit <- lm(formula, data=d)
+  return(summary(fit)$r.square)
+} 
+
+# bootstrapping with 2000 replications 
+BootRsq <- boot(data=CorrData, statistic=rsq, 
+  	R=2000, formula=Happiness~IceCream)
+
+# view results
+hist(BootRsq)
+
+# get 95% confidence interval 
+boot.ci(BootRsq)
+```
+
+# Power and Regression
+For regression, we will need to convert our $r^2$ into cohen's $f^2$
+
+$$f^2 = \frac{r^2}{1-r^2}$$
+
+## Power Calculation
+
+We will use the `pwr` package.
+
+```{r, echo=TRUE}
+library(pwr) #power analysis
+#power for GLM
+# u	 = degrees of freedom for numerator
+# v	= degrees of freedom for denominator
+# f2 = effect size
+# sig.level= (Type I error probability)
+# power = (1 minus Type II error probability)
+f2.icecream <- r^2 / (1-r^2)
+
+pwr.f2.test(u = 1, v = n-2, f2 = f2.icecream, sig.level = 0.05, power = NULL)
+```
+
+So we had a power of basically 1 given this sample size and our true effect size of `r r`
+
+## A Priori Power Analysis
+- What sample size do I need given a specific $f^2$
+- Note: Gpower might use $f$, not $f^2$
+
+```{r, echo=TRUE}
+#power for GLM
+# u	 = degrees of freedom for numerator
+# v	= degrees of freedom for denominator
+# f2 = effect size
+# sig.level= (Type I error probability)
+# power = (1 minus Type II error probability)
+
+pwr.f2.test(u = 1, v = NULL, f2 = f2.icecream, sig.level = 0.05, power = .80)
+```
+
+# Final Notes 
+- Testing between correlations using old fashion Fisher's test is old fashion (Cohen et al., p. 49). The modern approach is the bootstrap, as the old method is underpowered. 
+- Your book is a little out of date: CIs are better but bootstrapped CIs are becoming more standard. Use the code above to bootstrapped CIs when reporting results. 
+
+# References
+Lykken, D. T. (1968). Statistical significance in psychological research. *Psychological bulletin*, 70(3p1), 151.
+
+Meehl, P. E. (1990a). Appraising and amending theories: The strategy of Lakatosian defense and two principles that warrant it. *Psychological inquiry*, 1(2), 108-141.
+
+Meehl, P. E. (1990b). Why summaries of research on psychological theories are often uninterpretable. *Psychological reports*, 66(1), 195-244.
+

@@ -1,0 +1,309 @@
+---
+title: 'Class 8: Following up the Two-Way Analysis of Variance'
+geometry: margin=.5in
+header-includes:
+- \usepackage{amsmath}
+output:
+  pdf_document:
+    highlight: default
+    number_sections: yes
+    toc: yes
+    toc_depth: 3
+  html_document:
+    toc: yes
+    toc_depth: '3'
+fontsize: 11pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning =  FALSE)
+knitr::opts_chunk$set(fig.width=5.25)
+knitr::opts_chunk$set(fig.height=3.0)
+knitr::opts_chunk$set(fig.align='center') 
+knitr::opts_chunk$set(fig.pos = 'H')
+knitr::opts_chunk$set(results='hold') 
+```
+
+
+\pagebreak
+
+
+# Design Example for Last Class
+> Kardas & O'Brien (2018) recently reported that with the proliferation of YouTube videos, people seem to think they can learn by *seeing* rather than *doing*.  They "hypothesized that the more people merely watch others, the more they believe they can perform the skill themselves." They compared extensively watching the "tablecloth trick" with extensively reading or thinking about it.  Participants assessed their own abilities to perform the "tablecloth trick."  Participants were asked to rate from 1 (I feel there's no chance at all I'd succeed on this attempt) to 7 (I feel I'd definitely succeed without a doubt on this attempt). The study was a 3 (type of exposure: watch, read, think) × 2 (amount of exposure: low, high) between-subjects design. They collected an N = 1,003 with small effect sizes ($n^2 <.06$), but to make this analysis doable by hand I will cut the same to 5 people per cell and inflate the effect size (but keep the pattern the same as their experiment 1).
+  
+ 
+**Low Exposure Group**  |Watching  | Reading  | Thinking | **Row Means**
+------------------------|---------|----------|----------|----------
+                 $\,$   |1        | 3        | 3        |
+                 $\,$   |3        | 2        | 3        |
+                 $\,$   |3        | 3        | 2        |
+                 $\,$   |4        | 1        | 3        |
+                 $\,$   |2        | 4        | 1        |
+------------------------|---------|----------|----------|----------                 
+            Cell Means  |*2.6*    | *2.6*    |*2.4*     | **2.53**
+            Cell SS     |*5.2*    | *5.2*    | *3.2*    |
+
+
+**High Exposure Group** |Watching | Reading  | Thinking | **Row Means**
+------------------------|---------|----------|----------|----------
+                 $\,$   |6        | 5        | 3        |
+                 $\,$   |4        | 3        | 2        |
+                 $\,$   |7        | 2        | 1        |
+                 $\,$   |5        | 3        | 4        |
+                 $\,$   |5        | 2        | 4        |
+------------------------|---------|----------|----------|----------      
+            Cell Means  |*5.4*    | *3.0*    |*2.8*     | **3.73** 
+            Cell SS     |*5.2*    | *6.0*    | *6.8*    | 
+**Column Means**        |**4.0**  |**2.8**   |**2.6**   | G = 3.13
+
+
+## ANOVA Result
+
+```{r, echo=FALSE}
+n=5; r=2; c=3;
+Example.Data<-data.frame(ID=seq(1:(n*r*c)),
+          Level=c(rep("Low",(n*c)),rep("High",(n*c))),
+          Type=rep(c(rep("Watching",n),rep("Reading",n),rep("Thinking",n)),2),
+          Perceived.Ability = c(1,3,3,4,2,3,2,3,1,4,3,3,2,3,1,
+                                6,4,7,5,5,5,3,2,3,2,3,2,1,4,4))
+
+# Also, I want to re-set the order using the `factor` command and set the order I want. 
+Example.Data$Level<-factor(Example.Data$Level, 
+                              levels = c("Low","High"),
+                              labels = c("Low","High"))
+
+Example.Data$Type<-factor(Example.Data$Type, 
+                              levels = c("Watching","Reading","Thinking"),
+                              labels = c("Watching","Reading","Thinking"))
+
+```
+
+
+```{r}
+library(afex)
+
+Anova.Results<-aov_car(Perceived.Ability~Level*Type + Error(ID), 
+                  data=Example.Data)
+Anova.Results
+```
+
+# Follow Up Logic
+Just like the one-way ANOVA, the two-way ANOVA tells us which factors are different, but not which levels.  The best approach to follow is the Hybrid approach: Do the Confirmatory approach (planned comparisons). Test anything exploratory as conservatively as you can (unplanned comparisons). You need to carefully distinguish what you are doing to your reader.
+
+The challenge of the two-way ANOVA is **unpacking** a significant interaction. All interaction must be unpacked, meaning they must be explained (which cells have driven the effect).  This is not always easy the interaction may not always come out as predicted.      
+
+## Basic Rules
+- **Do not follow up F-tests that were not significant**
+- Use error term from ANOVA to do contrasts or protected-t
+- Planned: no multiple comparison correction necessary if under 3 tests, but can be applied if you want to be conservative or have multiple planned tests
+- Unplanned: apply multiple comparison correction
+- Interactions: DO as FEW TESTS as possible to explain the interaction (don't follow it up both ways)
+
+## Hypothesis from Example data
+Kardas and O'Brien (2018) hypothesized that spending more time watching YouTube videos would cause someone to think the can do the tablecloth trick. Therefore, from their hypothesis, we would predict that the degree of exposure would impact only the watched condition: the high exposure group to should have a higher mean on *watched* over the low exposure group, but no differences between low and high exposure on reading or thinking about the trick. In sum, they are predicting only 2 cells differ (Low vs High @ Watched). *Note: Non-significant mean no significant difference (cannot reject null). It does not mean the groups are the same. Be careful about talking about non-significant results.* 
+
+
+```{r, echo=FALSE}
+library(dplyr)
+Means.Table<-Example.Data %>%
+  group_by(Level,Type) %>%
+  summarise(N=n(),
+            Means=mean(Perceived.Ability),
+            SS=sum((Perceived.Ability-Means)^2),
+            SD=sd(Perceived.Ability),
+            SEM=SD/N^.5)
+library(ggplot2)
+
+Plot.1<-ggplot(Means.Table, aes(x = Type, y = Means, group=Level))+
+  geom_col(aes(group=Level, fill=Level), position=position_dodge(width=0.9))+
+  scale_y_continuous(expand = c(0, 0))+ # Forces plot to start at zero
+  geom_errorbar(aes(ymax = Means + SEM, ymin= Means - SEM), 
+                position=position_dodge(width=0.9), width=0.25)+
+  scale_fill_manual(values=c("#f44141","#4286f4"))+
+  xlab('')+
+  ylab('Perceived Ability')+
+  theme_bw()+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank(),
+        panel.border=element_blank(),
+        axis.line=element_line(),
+        legend.title=element_blank())
+Plot.1
+```
+
+
+### Main Effects vs Interaction
+If the interaction is telling a conflicting story with the main effects, you may either not want to follow up the main effects or carefully explain them. You will notice in Kardas & O'Brien (2018) they did not follow up the main effects, only the interaction. 
+
+# Planned Comparisons of Interaction 
+## Simple Effects with 2-Levels
+
+They want to test the **simple effects** (one factor at the level of another factor) of Level of Exposure at each Type of Exposure.  AKA: Low vs. High @ Watching,  Low vs. High @ Reading,  Low vs. High @ Thinking. 
+
+Just like when we followed up the one-way ANOVA, we will use the df and error term from omnibus ANOVA ($df_W$ & $MS_W$). To do this, we will use emmeans package. Note: These can be reported as F-tests (as basically, we are doing one-way ANOVAs) or as t-values. 
+
+### Fit Model
+
+First, we must **cut** the ANOVA we calculated the way we want to test the results:
+
+```{r}
+library(emmeans)
+Simple.Effects.By.Type<-emmeans(Anova.Results, ~Level|Type)
+Simple.Effects.By.Type
+```
+
+### As t-values (pairwise approach)
+
+You see above; we have 3 subsets of the results. Now we can calculate the F-values, and we can use the `pairs` function. This will run 3 LSD tests (protected t-tests) using the DF and error terms from the two-way ANOVA automatically.
+
+```{r}
+pairs(Simple.Effects.By.Type,adjust='none')
+```
+
+**Note**: These are seen 3 families of 1 test. So even if you try to apply FWER you cannot. I will show you how to force that when we get to unplanned follow-up tests.  
+
+### As t-values (contrast approach)
+You can also call a contrast code and get the same exact results.  Note: this will be useful as we add more levels. 
+
+```{r}
+Set1 <- list(
+  H1 = c(-1,1))
+
+contrast(Simple.Effects.By.Type,Set1,adjust='none')
+```
+
+### As F-tests (one-way ANOVAs)
+In this case the F-tests = squared(t-values). All we have to do is wrap the `pairs` or `contrast` in the `test` function (with `joint = TRUE` argument). This will run 3 one-way ANOVAs using the DF and error terms from the two-way ANOVA automatically.
+
+```{r}
+test(pairs(Simple.Effects.By.Type), joint = TRUE)
+```
+
+
+### Which to report?
+F or t values? When you use the words "simple effects" or "contrasts" people are primed to see F-values (and people generally don't ask for FWER corrections). When you pairwise approach, they think you are doing unprotected t-tests and want to see FWER. 
+
+## Following up the interaction the other way
+First and foremost, ONLY UNPACK THE INTERACTION WITH ONE FAMILY OF SIMPLE EFFECTS.  Do not think you now also have to test it the other way: Watching vs. Reading vs. Thinking @ Low,  Watching vs. Reading vs. Thinking @ High. You will notice in their paper they did not do this as they did not hypothesize these type of follow-ups. Also, they already Unpacked their ANOVA. They know what caused the interaction.  Any additional tests are merely a waste of time and will inflate FWER. Now, might you have a hypothesis that was very complex and required you to follow it both ways? Yes, you would limit which simple effects you would examine to those you need to see to understand the effects. 
+
+
+## Simple Effects with 3-Levels
+They did not hypothesize following up the other way, but we will do it anyway. The problem we have is that we have three level: Watching vs Reading vs Thinking @ Low, Watching vs Reading vs Thinking @ High. In the old school approach, we first have to run an F-test (one-way ANOVA) at each level of Level of Exposure and run pairwise or contrasts to follow up if the One-way was significant. 
+
+### Fit Model
+
+First, we must **cut** the ANOVA we calculated the way we want to test the results:
+
+```{r}
+Simple.Effects.By.Level<-emmeans(Anova.Results, ~Type|Level)
+Simple.Effects.By.Level
+```
+
+### As F-tests (one-way ANOVAs)
+Just like above, we run our one-way ANOVA using the df and error term from omnibus ANOVA ($df_W$ & $MS_W$). (ignore any messages about linear dependence). 
+
+```{r}
+test(pairs(Simple.Effects.By.Level), joint = TRUE)
+```
+
+### Pairwise follow up
+The code will run these are 2 families of 3 tests. You need to ignore the results of the low exposure group. 
+
+#### Fisher LSD 
+
+```{r}
+pairs(Simple.Effects.By.Level,adjust='none')
+```
+
+#### Tukey HSD 
+- It will correct for 3 tests per family
+
+```{r}
+pairs(Simple.Effects.By.Level,adjust='tukey')
+```
+
+### Contrasts
+
+#### "Simple" Linear Contrast
+
+This is indentical to LSD results.
+```{r}
+Set2 <- list(
+  H1 = c(-1,1,0),
+  H2 = c(-1,0,1),
+  H3 = c(0,-1,1))
+
+contrast(Simple.Effects.By.Level,Set2,adjust='none')
+```
+
+This coding system will only let you Bonferroni, Sidak, or FDR. If you type, Tukey the package will change it to Sidak. It will also correct for 3 tests within each family.
+
+```{r}
+contrast(Simple.Effects.By.Level,Set2,adjust='sidak')
+```
+
+If you want a Tukey-like correction, you must use 'mvt' this is a Monte-Carlo corrected pvalue based on multivariate normal t-test distribution. Note this is a simulation and can be very slow with large amounts of data.
+
+```{r}
+contrast(Simple.Effects.By.Level,Set2,adjust='mvt')
+```
+
+#### "Complex" Linear Contrast 
+Here you can merge and compare groups as before. You can apply corrections if you lots of tests, but they will be within the family: Bonferroni, Sidak, mvt, or FDR.
+
+```{r}
+Set3 <- list(
+  WvsRT = c(2,-1,-1))
+
+contrast(Simple.Effects.By.Level,Set3,adjust='none')
+```
+
+#### "Consecutive" Contrast 
+If the data were ordinal, you could test them in some kind of logical order. You can apply corrections if you lots of tests, but they will be within the family: Bonferroni, Sidak, mvt, or FDR.
+```{r}
+Consec.Set <- list(
+  WvsR = c(-1,1,0),
+  RvsT = c(0,1,0))
+
+contrast(Simple.Effects.By.Level,Consec.Set,adjust='none')
+# Also 
+# contrast(Simple.Effects.By.Level,'consec',adjust='none')
+```
+
+#### "Polynomial" Contrast
+If the data were ordinal, you could test to see if they have a linear slope or curvilinear slope. You can apply corrections if you lots of tests, but they will be within the family: Bonferroni, Sidak, mvt, or FDR.
+
+```{r}
+Poly.Set <- list(
+  Linear = c(-1,0,1),
+  Quad = c(-1,2,-1))
+
+contrast(Simple.Effects.By.Level,Poly.Set,adjust='none')
+# Also 
+# contrast(Simple.Effects.By.Level,'poly',adjust='none')
+```
+
+# Main-effect Follow up
+Remember, we would not follow this one up because of the hypothesis we are testing, but you may want to follow up the main effects in other cases. If this is planned, go with less stringent correction. If its unplanned use a more conservative correction. 
+
+Code wise it the same as we did for one-way ANOVA, here we can only follow up the Type of Exposure. Again we will use the df and error term from the two-way interaction.  
+
+```{r}
+Main.Effects.Type<-emmeans(Anova.Results, ~Type)
+Main.Effects.Type
+```
+
+You can run the pairwise or any of the contrast approaches I showed you for interactions.  
+
+```{r}
+pairs(Main.Effects.Type,adjust='mvt')
+```
+
+# Unplanned Comparisons
+This is all the same code as above, but you should use conservative corrections. There are also ways to force R to recognize there are more tests within the family but we will not cover that today. 
+
+
+# References
+Kardas, M., & O'Brien, E. (2018). Easier Seen Than Done: Merely Watching Others Perform Can Foster an Illusion of Skill Acquisition. *Psychological science*, 29(4), 521-536.

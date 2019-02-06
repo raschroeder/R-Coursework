@@ -1,0 +1,452 @@
+---
+title: 'Multiple Comparisons (Bonferroni vs FDR)'
+geometry: margin=.5in
+output:
+  pdf_document:
+    highlight: default
+    number_sections: yes
+    toc: yes
+    toc_depth: 4
+  html_document:
+    toc: yes
+    toc_depth: '3'
+fontsize: 11pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning =  FALSE)
+knitr::opts_chunk$set(fig.width=4.25)
+knitr::opts_chunk$set(fig.height=4.0)
+knitr::opts_chunk$set(fig.align='center') 
+knitr::opts_chunk$set(fig.pos = 'H')
+knitr::opts_chunk$set(results='hold') 
+```
+
+\pagebreak
+
+# Review: Philosophy I (Familywise) Correction for Error Rate
+
+Dominant Philosophy in Experimental Psychology 
+
+Declared         | Null is True (no difference)   | Null is False (difference)    | Total
+-----------------|--------------------------------|-------------------------------|------
+Sig              | Type 1 (V)                     | True Positives (S)            | R
+Non-Sig          | True Negative (U)              | Type II (T)                   | M-R
+Total            | Mo                             | M-Mo                          | M
+
+Familywise error = **V / Mo = Probability of getting at least one test wrong** 
+
+## Simulation of FWER
+
+Let's imagine that 25% of the brain region are different from each other at a set *effect size*. We will run a Monte-Carlo Simulation: 50,000 t-tests, $N=10$ per group, $\alpha_{pc}=.05$,  which will yield Power = .50. Our goal is to find those 25 regions and we will assume each test is independent and we sample with replacement.  Further, we will know which regions were actually different **(We know the "truth")**.  
+
+```{r, echo=FALSE}
+# Paramaters
+library(pwr)
+N = 10
+alpha <- 0.05
+d <- pwr.t.test(n = N, d = NULL, sig.level = .05, power = .5, 
+           type = c("two.sample"),
+           alternative = c("two.sided"))$d
+
+Studies <- 50000
+P_0 <- .75 ##Set % of True H0
+m0 <- Studies*P_0
+m1 <- Studies-m0
+BaseRate <- c(rep(TRUE,m0), rep(FALSE,m1))
+
+set.seed(42)
+population<-rnorm(1e6)
+
+t.Sim<-function(i){
+  Control <- sample(population,N,replace = TRUE)
+  Treatment <- sample(population,N,replace = TRUE)
+  if(BaseRate[i]==TRUE) {
+        Treatment <- Treatment #No effect
+  }
+  else {
+         Treatment <- Treatment + d # Add the effect
+  }
+  
+  p.exp<-t.test(Treatment,Control,var.equal = TRUE)$p.value
+  return(p.exp)
+}
+
+Sim.Pvalue<-sapply(1:Studies,t.Sim)
+
+Declared<-as.factor(as.character(ifelse(Sim.Pvalue < alpha, "Sig", "Non-Sig")))
+
+Declared <- factor(Declared, 
+                          levels=c("Sig","Non-Sig"),
+                          labels=c("Sig","Non-Sig"))
+
+Null<- factor(BaseRate, 
+                          levels=c("TRUE","FALSE"),
+                          labels=c("Null is True (no difference)","Null is False (difference)"))
+
+SimT1<-table(Declared,Null)
+```
+
+## Results Table of FWER Simulation
+
+Declared         | Null is True (no difference)   | Null is False (difference)    | Total
+-----------------|--------------------------------|-------------------------------|------
+Sig              | `r SimT1[1,1]`                 | `r SimT1[1,2]`                | `r SimT1[1,1] + SimT1[1,2]`
+Non-Sig          | `r SimT1[2,1]`                 | `r SimT1[2,2]`                | `r SimT1[2,1] + SimT1[2,2]`
+Total            | `r SimT1[1,1] +SimT1[2,1]`     | `r SimT1[1,2] +SimT1[2,2]`    | `r sum(SimT1)` 
+
+
+FWER = V / Mo = `r round(SimT1[1,1]/(SimT1[1,1]+SimT1[2,1]),3)` 
+
+Type II = T/M-Mo =  `r round(SimT1[2,2]/(SimT1[1,2]+SimT1[2,2]),3)`, which is correct since power = .50
+
+If you ran 10K studies `r round((SimT1[1,1] + SimT1[1,2])/sum(SimT1),4)*100`% of them would have been declared significant (R/M), but in reality 25% of the studies had a true effect.
+
+**Here is another way to view it**: Of the tests we declared significant a large percentage of them of were not real (V / R = `r round(SimT1[1,1]/(SimT1[1,1] + SimT1[1,2]),4)*100`%). 
+
+## Bonferroni Correction
+
+$$\alpha_{pc} = \frac{\alpha_{EW}}{j} = \frac{.05}{50,000} = 1X10^{-6} $$
+
+We will keep everything else the same from the last simulation. 
+
+```{r, echo=FALSE}
+# Paramaters
+Sim.Pvalue.Bon<-p.adjust(Sim.Pvalue, method = 'bon')
+Declared.Bon<-as.factor(as.character(ifelse(Sim.Pvalue.Bon < alpha, "Sig", "Non-Sig")))
+Declared.Bon <- factor(Declared.Bon, 
+                          levels=c("Sig","Non-Sig"),
+                          labels=c("Sig","Non-Sig"))
+
+Null<- factor(BaseRate, 
+                          levels=c("TRUE","FALSE"),
+                          labels=c("Null is True (no difference)","Null is False (difference)"))
+
+SimT2<-table(Declared.Bon,Null)
+```
+
+### Results Table of Bonferroni Simulation
+
+Declared         | Null is True (no difference)   | Null is False (difference)    | Total
+-----------------|--------------------------------|-------------------------------|------
+Sig              | `r SimT2[1,1]`                 | `r SimT2[1,2]`                | `r SimT2[1,1] + SimT2[1,2]`
+Non-Sig          | `r SimT2[2,1]`                 | `r SimT2[2,2]`                | `r SimT2[2,1] + SimT2[2,2]`
+Total            | `r SimT2[1,1] +SimT2[2,1]`     | `r SimT2[1,2] +SimT2[2,2]`    | `r sum(SimT2)` 
+
+
+FWER = V / Mo = `r round(SimT2[1,1]/(SimT2[1,1]+SimT2[2,1]),3)` 
+
+Type II = T/M-Mo =  `r round(SimT2[2,2]/(SimT2[1,2]+SimT2[2,2]),3)`. So we missed everything (power is basically 0)
+
+So we made no mistakes, but we found nothing.  *NIH never gives you another penny*.  
+
+### Plot of Bonferroni Corrected Pvalues
+
+```{r, echo=FALSE}
+plot(Sim.Pvalue,Sim.Pvalue.Bon,
+     xlab='Uncorrect Pvalues',
+     ylab='Bonferroni Corrected Pvalues')
+```
+
+### Increase Power, Rinse and Repeat
+
+```{r,echo=FALSE}
+NPerGroup <- ceiling(pwr.t.test(n = NULL, d = d , sig.level = .05/Studies, power = .5, 
+           type = c("two.sample"),
+           alternative = c("two.sided"))$n)
+```
+
+Given our original d = `r round(d,3)`, we would recalculate the sample size we would need per group (`r NPerGroup`) given our new alpha $\alpha_{pc} = 5X10^{-6}$. That is a `r (NPerGroup - 10) /10 *100`% increase in sample size!  
+
+Let's try to increase our sample size to 62 per group and try again
+
+```{r, echo=FALSE}
+# Paramaters
+library(pwr)
+N = NPerGroup
+alpha <- 0.05/Studies
+P_0 <- .75 ##Set % of True H0
+m0 <- Studies*P_0
+m1 <- Studies-m0
+BaseRate <- c(rep(TRUE,m0), rep(FALSE,m1))
+
+set.seed(42)
+population<-rnorm(1e6)
+
+t.Sim<-function(i){
+  Control <- sample(population,N,replace = TRUE)
+  Treatment <- sample(population,N,replace = TRUE)
+  if(BaseRate[i]==TRUE) {
+    Treatment <- Treatment #No effect
+  }
+  else {
+    Treatment <- Treatment + d # Add the effect
+  }
+  
+  p.exp<-t.test(Treatment,Control,var.equal = TRUE)$p.value
+  return(p.exp)
+}
+
+Sim.Pvalue<-sapply(1:Studies,t.Sim)
+
+Declared<-as.factor(as.character(ifelse(Sim.Pvalue < alpha, "Sig", "Non-Sig")))
+
+Declared <- factor(Declared, 
+                   levels=c("Sig","Non-Sig"),
+                   labels=c("Sig","Non-Sig"))
+
+Null<- factor(BaseRate, 
+              levels=c("TRUE","FALSE"),
+              labels=c("Null is True (no difference)","Null is False (difference)"))
+
+SimT3<-table(Declared,Null)
+```
+
+### Results Table of Higher Powered Bonferroni Simulation (Power = .5)
+
+Declared         | Null is True (no difference)   | Null is False (difference)    | Total
+-----------------|--------------------------------|-------------------------------|------
+Sig              | `r SimT3[1,1]`                 | `r SimT3[1,2]`                | `r SimT3[1,1] + SimT3[1,2]`
+Non-Sig          | `r SimT3[2,1]`                 | `r SimT3[2,2]`                | `r SimT3[2,1] + SimT3[2,2]`
+Total            | `r SimT3[1,1] +SimT3[2,1]`     | `r SimT3[1,2] +SimT3[2,2]`    | `r sum(SimT3)` 
+
+
+FWER = V / Mo = `r round(SimT3[1,1]/(SimT3[1,1]+SimT3[2,1]),3)` 
+
+Type II = T/M-Mo =  `r round(SimT3[2,2]/(SimT3[1,2]+SimT3[2,2]),3)`. So we fixed our power problem and made no FWER! BUT: 
+
+650 Per scan * N = 10 * 2 groups = 13,000 dollars  
+650 Per scan * N = 62 * 2 groups = 80,600 dollars 
+
+And yet we still miss 50% of the results because we are powered at .50. If we go to power .95, as we don't want to miss 50% of the results. 
+
+```{r,echo=FALSE}
+NPerGroup95 <- ceiling(pwr.t.test(n = NULL, d = d , sig.level = .05/Studies, power = .95, 
+           type = c("two.sample"),
+           alternative = c("two.sided"))$n)
+```
+
+N = `r NPerGroup95`
+
+650 Per scan * N = 106 * 2 groups = 137,800 dollars 
+
+```{r, echo=FALSE}
+# Paramaters
+library(pwr)
+N = NPerGroup95
+alpha <- 0.05/Studies
+P_0 <- .75 ##Set % of True H0
+m0 <- Studies*P_0
+m1 <- Studies-m0
+BaseRate <- c(rep(TRUE,m0), rep(FALSE,m1))
+
+set.seed(42)
+population<-rnorm(1e6)
+
+t.Sim<-function(i){
+  Control <- sample(population,N,replace = TRUE)
+  Treatment <- sample(population,N,replace = TRUE)
+  if(BaseRate[i]==TRUE) {
+    Treatment <- Treatment #No effect
+  }
+  else {
+    Treatment <- Treatment + d # Add the effect
+  }
+  
+  p.exp<-t.test(Treatment,Control,var.equal = TRUE)$p.value
+  return(p.exp)
+}
+
+Sim.Pvalue<-sapply(1:Studies,t.Sim)
+
+Declared<-as.factor(as.character(ifelse(Sim.Pvalue < alpha, "Sig", "Non-Sig")))
+
+Declared <- factor(Declared, 
+                   levels=c("Sig","Non-Sig"),
+                   labels=c("Sig","Non-Sig"))
+
+Null<- factor(BaseRate, 
+              levels=c("TRUE","FALSE"),
+              labels=c("Null is True (no difference)","Null is False (difference)"))
+
+SimT4<-table(Declared,Null)
+```
+
+
+### Results Table of Super Powered Bonferroni Simulation (Power = .95)
+
+Declared         | Null is True (no difference)   | Null is False (difference)    | Total
+-----------------|--------------------------------|-------------------------------|------
+Sig              | `r SimT4[1,1]`                 | `r SimT4[1,2]`                | `r SimT4[1,1] + SimT4[1,2]`
+Non-Sig          | `r SimT4[2,1]`                 | `r SimT4[2,2]`                | `r SimT4[2,1] + SimT4[2,2]`
+Total            | `r SimT4[1,1] +SimT4[2,1]`     | `r SimT4[1,2] +SimT4[2,2]`    | `r sum(SimT4)` 
+
+
+FWER = V / Mo = `r round(SimT4[1,1]/(SimT4[1,1]+SimT4[2,1]),3)` 
+
+Type II = T/M-Mo =  `r round(SimT4[2,2]/(SimT4[1,2]+SimT4[2,2]),3)`. 
+  
+All of the low low price of 137,800 dollars for 1 study!
+
+
+# Philosophy II False Rate of Discovery 
+
+FWER is appropriate when you want NO false positives
+
+Dominant Philosophy in Neuroscience, genomics, etc. Any field where they are not as worried about false positives but interested in making discoveries.   
+
+Declared         | Null is True (no difference)   | Null is False (difference)    | Total
+-----------------|--------------------------------|-------------------------------|------
+Sig              | Type 1 (V)                     | True Positives (S)            | R
+Non-Sig          | True Negative (U)              | Type II (T)                   | M-R
+Total            | Mo                             | M-Mo                          | M
+
+FDR error = **V / R**
+
+
+\pagebreak
+
+
+## Benjamini and Hochberg procedure 
+
+1. Sort all p-values from all tests you did (smallest to largest)
+2. Assign ranks to the p-values (lowest=1, etc.).
+3. Calculate each individual p-value's Benjamini-Hochberg critical value, using the formula (rank/total number of tests)*q, where: q = the false discovery rate (a percentage, chosen by you or via algorithm which is beyond our scope)
+4. Compare your original p-values to the B-H critical value; find the largest pvalue that is smaller than the critical value.
+
+
+```{r, echo=FALSE}
+T1=(1/5)*.1
+T2=(2/5)*.1
+T3=(3/5)*.1
+T4=(4/5)*.1
+T5=(5/5)*.1
+```
+
+For example 5 t-tests only:
+
+Test    | Pvalue | Rank | BH Critical Value (Rank/m)*q [.1] | Significant?
+--------|--------|------|-----------------------------------|-------------
+Test 5  | .001   | 1    | `r T1`                            | Yes
+Test 1  | .030   | 2    | `r T2`                            | Yes
+Test 3  | .045   | 3    | `r T3`                            | No
+Test 2  | .056   | 4    | `r T4`                            | No
+Test 4  | .230   | 4    | `r T5`                            | No
+
+
+## FDR simulation
+
+Repeat our original simulation but correct the pvalues using FDR correction.  Note we will set FDR level to be about .05 to compare to Bonferroni, but people could change their alpha to be higher (.1 or .25 as in the Dead Salmon Paper).
+
+```{r, echo=FALSE}
+# Paramaters
+library(pwr)
+N = 10
+alpha <- 0.05
+d <- pwr.t.test(n = N, d = NULL, sig.level = .05, power = .5, 
+           type = c("two.sample"),
+           alternative = c("two.sided"))$d
+
+
+P_0 <- .75 ##Set % of True H0
+m0 <- Studies*P_0
+m1 <- Studies-m0
+BaseRate <- c(rep(TRUE,m0), rep(FALSE,m1))
+
+set.seed(42)
+population<-rnorm(1e6)
+
+t.Sim<-function(i){
+  Control <- sample(population,N,replace = TRUE)
+  Treatment <- sample(population,N,replace = TRUE)
+  if(BaseRate[i]==TRUE) {
+        Treatment <- Treatment #No effect
+  }
+  else {
+         Treatment <- Treatment + d # Add the effect
+  }
+  
+  p.exp<-t.test(Treatment,Control,var.equal = TRUE)$p.value
+  return(p.exp)
+}
+
+Sim.Pvalue<-sapply(1:Studies,t.Sim)
+Sim.Pvalue.BH<-p.adjust(Sim.Pvalue, method = 'fdr')
+
+Declared.BH<-as.factor(as.character(ifelse(Sim.Pvalue.BH < alpha, "Sig", "Non-Sig")))
+
+Declared.BH <- factor(Declared.BH, 
+                          levels=c("Sig","Non-Sig"),
+                          labels=c("Sig","Non-Sig"))
+
+Null<- factor(BaseRate, 
+                          levels=c("TRUE","FALSE"),
+                          labels=c("Null is True (no difference)","Null is False (difference)"))
+
+SimT5<-table(Declared.BH,Null)
+```
+
+
+### Results Table of FDR Simulation
+
+Declared         | Null is True (no difference)   | Null is False (difference)    | Total
+-----------------|--------------------------------|-------------------------------|------
+Sig              | `r SimT5[1,1]`                 | `r SimT5[1,2]`                | `r SimT5[1,1] + SimT5[1,2]`
+Non-Sig          | `r SimT5[2,1]`                 | `r SimT5[2,2]`                | `r SimT5[2,1] + SimT5[2,2]`
+Total            | `r SimT5[1,1] +SimT5[2,1]`     | `r SimT5[1,2] +SimT5[2,2]`    | `r sum(SimT5)` 
+
+We can compare this to our Bonferroni Correction Table. 
+
+FDR = V / R = `r round(SimT5[1,1]/(SimT5[1,1]+SimT5[1,2]),4)`
+
+Type II = T/M-Mo =  `r round(SimT5[2,2]/(SimT5[1,2]+SimT5[2,2]),3)`
+
+
+### Plot of FDR Corrected Pvalues
+
+```{r, echo=FALSE}
+plot(Sim.Pvalue,Sim.Pvalue.BH,
+     xlab='Uncorrect Pvalues',
+     ylab='FDR Corrected Pvalues')
+```
+
+### Results Table of FDR Simulation (alpha=.10)
+
+```{r, echo=FALSE}
+Declared.BH.1<-as.factor(as.character(ifelse(Sim.Pvalue.BH < alpha*2, "Sig", "Non-Sig")))
+
+Declared.BH.1 <- factor(Declared.BH.1, 
+                          levels=c("Sig","Non-Sig"),
+                          labels=c("Sig","Non-Sig"))
+
+Null<- factor(BaseRate, 
+                          levels=c("TRUE","FALSE"),
+                          labels=c("Null is True (no difference)","Null is False (difference)"))
+
+SimT6<-table(Declared.BH.1,Null)
+```
+
+
+Declared         | Null is True (no difference)   | Null is False (difference)    | Total
+-----------------|--------------------------------|-------------------------------|------
+Sig              | `r SimT6[1,1]`                 | `r SimT6[1,2]`                | `r SimT6[1,1] + SimT6[1,2]`
+Non-Sig          | `r SimT6[2,1]`                 | `r SimT6[2,2]`                | `r SimT6[2,1] + SimT6[2,2]`
+Total            | `r SimT6[1,1] +SimT6[2,1]`     | `r SimT6[1,2] +SimT6[2,2]`    | `r sum(SimT6)` 
+
+We can compare this to our Bonferroni Correction Table. 
+
+FDR = V / R = `r round(SimT6[1,1]/(SimT6[1,1]+SimT6[1,2]),4)`
+
+Type II = T/M-Mo =  `r round(SimT6[2,2]/(SimT6[1,2]+SimT6[2,2]),3)`
+
+
+### Notes
+- FDR q values are controlled via an algorithm in R, and we will not go into the details.
+- FDR (BH procedure) is only one of methods, there are others, but we will not go into them.
+- FDR correction is often applied to correction matrices because it's more logical as you are doing exploratory work. Simply pass your pvalues into this function: `Correct.Pvalues<-p.adjust(Pvector, method = 'fdr')`. You can decide on what to call significant (alpha .05 or .10 depending on how exploratory you want to be).
+- To avoid these issues, FMRI hypothesis can be contrained to be not "whole brain" or voxel by voxel comparisons. 
+
+
+

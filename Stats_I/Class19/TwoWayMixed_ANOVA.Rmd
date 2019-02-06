@@ -1,0 +1,301 @@
+---
+title: "Mixed ANOVA: Two-way, Graphing & Follow ups"
+geometry: margin=.5in
+header-includes:
+- \usepackage{amsmath}
+output:
+  pdf_document:
+    highlight: default
+    number_sections: yes
+    toc: yes
+    toc_depth: 4
+  html_document:
+    toc: yes
+    toc_depth: '4'
+fontsize: 11pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning =  FALSE)
+knitr::opts_chunk$set(fig.width=4.75)
+knitr::opts_chunk$set(fig.height=2.75)
+knitr::opts_chunk$set(fig.align='center') 
+knitr::opts_chunk$set(fig.pos = 'H')
+knitr::opts_chunk$set(results='hold') 
+```
+
+\pagebreak
+
+# Mixed Design Factors
+> You want to show the effectiveness of CBT therapy against no therapy in reducing depression scores. You give clients (and controls) the Beck depression index (BDI at baseline, and every two weeks afterward for up to 6 Weeks. You assign 30 people to each between-subjects group (control or CBT) with varying levels of depression (from mild to severe; BDI of 20 to 50), and in total, you will collect 4 BDI scores for each person (within subject).  You expect BDI scores to drop by the second BDI measurement and continue to decrease over sessions relative to control which should show no change. Keep in mind there is no intervention for the control group, and BDI score has a tendency to be unstable, so you are worried about assumption violations.      
+
+```{r, echo=FALSE}
+library(MASS)
+library(tidyr)
+library(dplyr)
+library(Matrix)
+set.seed(42)
+n = 20; 
+## means
+M1A=35; M2A=30; M3A=25; M4A=25
+M1B=35; M2B=35; M3B=35; M4B=35
+## Generate Cov matrix
+# create k x k matrix populated with sigma
+sigma1=8
+sigma2=12
+r1=0;
+r2=0
+sd.r=.3
+S1  <- forceSymmetric(Matrix(rnorm(16, m=sigma1,s=1), 4))
+Rho1<- forceSymmetric(Matrix(rnorm(16, m=r1,s=sd.r), 4))
+S2  <- forceSymmetric(Matrix(rnorm(16, m=sigma2,s=1), 4))
+Rho2<- forceSymmetric(Matrix(rnorm(16, m=r2,s=sd.r), 4))
+
+# compute covariance between measures
+Sigma1 <- (S1^2) *Rho1
+Sigma2 <- (S2^2) *Rho2
+# put the variances on the diagonal 
+diag(Sigma1) <- sigma1^2  
+diag(Sigma2) <- sigma2^2 
+
+# Fixed them if they are not PD
+Sigma1<-nearPD(Sigma1)
+Sigma2<-nearPD(Sigma2)
+
+Simulation1 = mvrnorm(n=n, mu=c(M1A,M2A,M3A,M4A), Sigma=Sigma1$mat, empirical=FALSE)
+Simulation2 = mvrnorm(n=n, mu=c(M1B,M2B,M3B,M4B), Sigma=Sigma2$mat, empirical=FALSE)
+
+DataSim1<-data.frame(rbind(Simulation1,Simulation2))
+DataSim1$ID<-as.factor(rep(seq(1:(n*2))))
+DataSim1$Group<-as.factor(c(rep("CBT",n),rep("Control",n)))
+DataSim2<-gather(DataSim1,key = "Time", value = "BDI",X1:X4)
+
+DataSim2$Time<-factor(DataSim2$Time, 
+       levels=c("X1", "X2","X3","X4"),
+       labels=c("Baseline", "2 Weeks","4 Weeks","6 Weeks"))
+DataSim2$Group<-factor(DataSim2$Group, 
+       levels=c("CBT", "Control"),
+       labels=c("CBT", "Control"))
+```
+
+
+## Plot of Simulation
+### Spaghetti Plot
+Each line represents a person's score across conditions
+
+```{r, echo=FALSE,fig.width=6}
+library(ggplot2)
+theme_set(theme_bw(base_size = 12, base_family = "")) 
+
+Spaghetti.1 <-ggplot(data = DataSim2, aes(x = Time, y=BDI, group=ID))+
+  facet_grid(~Group)+
+  scale_y_continuous(limits=c(0,60),breaks = seq(0,60,10))+
+  geom_point(aes(colour = ID))+
+  geom_line(aes(colour = ID))+
+  ylab("BDI Score")+xlab("Time")+
+  theme(legend.position = "none")
+Spaghetti.1
+```
+
+### Means plot 
+Just like RM ANOVA, we will use Cousineau-Morey Corrected error bars which remove individual differences. The function will correct for the mixed design differences in the correction, just pass which variables are between below. Again, you can select between SE and CI (I plotted CI below).
+
+```{r,fig.width=6}
+setwd("C:/AlexFiles/SugerSync/UIC/Teaching/Graduate/543-Fall2018/Week 11")
+source('HelperFunctions.R')
+
+MeansforGGPlot <- summarySEwithin(data=DataSim2, "BDI", 
+                                  withinvars=c("Time"),
+                                  betweenvars=c("Group"),
+                            idvar="ID", na.rm=FALSE, conf.interval=.95)
+
+Means.Within.CI <-ggplot(data = MeansforGGPlot, aes(x = Time, y=BDI, group=Group))+
+  scale_y_continuous(breaks = seq(0,40,5))+
+  geom_line(aes(colour = Group), size=2)+
+  geom_ribbon(aes(ymin=BDI-ci, ymax=BDI+ci,fill = Group), alpha=.5)+
+  ylab("Mean BDI Score")+xlab("Time")+
+  theme(legend.position = "right")
+Means.Within.CI
+```
+
+For within error bars (Corrected) you can eye-ball significance (Cumming & Finch, 2005)
+
+95% CIs: 
+
+-  $p < .05$: when proportion overlap is about .50
+-  $p < .01$: when proportion overlap is about 0
+
+*Notice also you can see problems with the variance*
+
+## 2-Way Mixed ANOVA logic
+
+Two-way Mixed ANOVA Table With the formulas (conceptually simplified)
+
+Source        | SS                  | DF          | MS   | F
+--------------|---------------------|-------------|------|---
+$Between\,Subject$ | $CSS_{row\,means}$                  | $nK-1$      | $\frac{SS_{BS}}{df_{BS}}$       | 
+$Group$ | $CnSS_{Group\,means}$                          | $K-1$       | $\frac{SS_{G}}{df_{G}}$         |$\frac{MS_{G}}{MS_{W_{G}}}$
+$W_{G}$ | $SS_{BS} - SS_{G}$                             | $K(n-1)$    | $\frac{SS_{W_{G}}}{df_{W_{G}}}$ | 
+$Within\,Subject$  | $SS_T-SS_{BS}$                      | $nK(C-1)$   | $\frac{SS_w}{df_w}$             |   
+$\,RM$  | $KnSS_{RM\,means}$                             | $C-1$       | $\frac{SS_{RM}}{df_{RM}}$       | $\frac{MS_{RM}}{MS_{SXRM}}$
+$\,GXRM$  | $nSS_{Col\,means}-SS_G-SS_{RM}$              | $(K-1)(C-1)$| $\frac{SS_{GXRM}}{df_{GXRM}}$   | $\frac{MS_{GXRM}}{MS_{SXRM}}$
+$\,Residual\,[Sub\,x\,RM]$ | $SS_{WS}-SS_{RM}-SS_{GXRM}$ | $K(n-1)(C-1)$| $\frac{SS_{SXRM}}{df_{SXRM}}$  | 
+Total   | $SS_{scores}$                                  | $N-1$ 
+
+Notes: 
+
+- $SS_{T} = SS_{BS} +SS_{WS}$ 
+    - $SS_{BS} = SS_{G} + SS_{W_{G}}$
+    - $SS_{WS} = SS_{RM} +SS_{GXRM} + SS_{SXRM}$ 
+- $df_{T} = df_{BS} +df_{WS}$ 
+    - $df_{BS} = df_{G} + df_{W_{G}}$
+    - $df_{WS} = df_{RM} +df_{GXRM} + df_{SXRM}$ 
+
+### Explained Terms 
+
+- $SS_{G}$ = caused by group
+- $SS_{RM}$ = caused by treatment
+- $SS_{GXRM}$ = caused by group x treatment 
+
+### Unexplained Terms 
+
+- $SS_{W_{G}}$ = Noise due to group  
+- $SS_{SXRM}$ = Noise due to treatment  
+
+## R ANOVA Calculations
+### R Defaults
+- `afex` calculates the RM ANOVA for us and it will automatically correct for sphericity violations. 
+- Error(Subject ID/RM Factor): This tells the afex that subjects vary as function RM conditions.  
+- It reports $\eta_g^2$ assuming a manipulated group and treatment.
+
+```{r}
+library(afex)
+Mixed.1<-aov_car(BDI~ Time*Group + Error(ID/Time), 
+        data = DataSim2)
+Mixed.1
+```
+
+### Assumptions
+#### Sphericity
+Same as RM ANOVA, except we should examine Mauchly's test for Sphericity on each term (that has more than two levels)
+
+```{r}
+summary(Mixed.1, return="univariate")
+```
+
+Violations of Sphericity are more common in mixed designs, so be cautious
+
+#### Covariance Matrix 
+
+We assume Compound Symmetry for each group: 
+
+$$
+\mathbf{Cov} = \sigma^2\left[\begin{array}
+          {rrrr}
+          1 & \rho & \rho & \rho  \\
+          \rho & 1 & \rho & \rho  \\
+          \rho & \rho & 1 & \rho  \\
+          \rho & \rho & \rho & 1\\
+          \end{array}\right]
+$$ 
+
+However, as in the case of the study that we examined today, we have **two** Covariance Matrices (one for each group: $COV_1 = COV_2$). So we must test to see if they are homogeneous. We can use Box's M.
+
+#### Box's M
+
+Box's M tests to see if the covariance matrices are equal between groups (**HOCV**). This function in R requires we spread DV into columns based on the Within factor (we will use `spread` function in tidyr package: `dataset %>% spread(Within factor, DV)`. 
+
+```{r}
+library(tidyr); library(dplyr)
+#Box's M
+data_wide <- DataSim2 %>% spread(Time, BDI)
+```
+
+Now the data is wide, we will index the columns of the DV (rows 3 to 6) We will send this result to boxM function in `heplots` and cut it buy group. We can view the covariance matrix for each group and also view the results of the test.
+
+```{r}
+library(heplots)
+BoxResult<-boxM(data_wide[,3:6],data_wide$Group)
+BoxResult$cov
+BoxResult
+```
+
+Box's M does not work well with small samples and becomes overly sensitive in large samples.  We can set alpha here to be $\alpha = .001$. If the result is significant, that means the covariance matrices are not equal which means we have a problem. This increases the rate of which we might commit a Type I error when examining the interaction:  the treatment affected the covariance between trials by the group and not the just the means as we expected. So is the interaction due to mean differences or covariance differences? 
+
+#### HOV
+Box's M is not a great test, so its recommended you also check Levene's test (center the data via mean) or Brown-Forsythe test (center the data via median) in the `car` package.  Brown-Forsythe test is more robust to the violation of normality (Note: the output will still say Levene's test when you center via median).  Both these tests are sensitive to unequal sample sizes per group.  We can test HOV of the groups and group*treatment. If the interaction HOV is violated it supports the conclusion of Box's M. 
+
+```{r}
+library(car)
+# Brown-Forsythe test on Group Only
+leveneTest(BDI~ Group, data=DataSim2,center=median)
+
+# Brown-Forsythe test on Group X Treatment Only
+leveneTest(BDI~ Time*Group, data=DataSim2,center=median)
+```
+
+In the case of this study, Box's M and Brown-Forsythe test showed **HOCV** and **HOV** problems. So we are in trouble, what can we do? 
+
+**Solution?**: Cohen (2008) recommends that you do **not** do the mixed ANOVA, meaning you will be unable to test the interaction. You can only do one-way RMs for each group and do ANOVA or independent t-tests on the groups (collapsing over RM term). Is this extremely conservative approach is it justified? 
+
+# Follow Up Testing
+We have the same options as we did with RM ANOVA, but we have one extra assumption that will affect both the Modern Approach (using `emmeans` with error term from ANOVA and Satterthwaite's DF) and the Multivariate approach. 
+
+
+## Degree of the problem?
+I ran a simulation (see `MonteCarloMixed.R`) on the Type I error rates give the violations.  In this simulation (n = 1000) of 2 (between) x  4 (within) design with a sample size of 30. All the cells have mean of 0 and I let the covariance matrices for each group be random but different from each other. 
+
+**Type I Levels:**
+
+- Interaction term in the ANOVA (uncorrected) =  **.077** 
+- **Univariate approach** (uncorrected interaction error term + Satterthwaite's DF)
+    - Significant interactions Followed up **within-subject** Pair-wise comparisons (2 families with 6 tests each)
+        - Tukey Corrected & Using the error term from the Interaction = **.175**
+        - Bonferroni Corrected & Using the error term from the ANOVA = **.169**
+    - Significant interactions Followed up **Between-subject** Pair-wise comparisons (no correction as 1 per family)
+        - Using the error term from the Interaction = **.289**
+- **Multivariate approach** (error term and DF from MANOVA)
+    - Significant interactions Followed up **within-subject** Pair-wise comparisons (2 families with 6 tests each)
+        - Tukey Corrected & Using the error term from the Interaction = **.158**
+        - Bonferroni Corrected & Using the error term from the ANOVA = **.152**
+    - Significant interactions Followed up **Between-subject** Pair-wise comparisons (no correction as 1 per family)
+        - Using the error term from the Interaction = **.279**
+        
+        
+This is extremely high on the follow-ups testing and worse yet when you follow up between-subject way.  This is the reason for Cohen suggestions not to test the interaction. In the wild no one does this in practice because usually the whole point of the study.
+
+## Recommendations
+
+- For Box's M, set $\alpha = .001$, double check Brown-Forsythe to be sure there is a problem, and examine Spaghetti plots when you have a small number of subjects.   
+- When Box's M & B-F are violated:  
+    - Follow it up from the within variable ONLY and the minimum number of tests possible to test your predicted hypothesis.
+        - If you need to contrasts (using the error term of the ANOVA) do only the one you need and keep in mind you might be able to be replicated
+        - If you only need pairwise tests, do NOT use the error term from the ANOVA (do paired sample t-tests and Bonferroni correct the hell out of it)
+        - The multivariate approach will not help you here as you could see
+    - DO NOT DO ANY EXPLORATORY ANALYSIS; these will be all type I error.    
+- If you have designed your study well and had no violations, go ahead follow up the way you would follow up an RM ANOVA using emmeans, but try to follow it up only within-subject as you have higher power (and thus lower Type I risk)
+
+
+### Example of Follow up (assuming no violations)
+#### Follow Up Interaction
+
+Example using simple effects followed up by polynomial contrast
+
+```{r}
+library(emmeans)
+Time.by.Group<-emmeans(Mixed.1,~Time|Group)
+test(pairs(Time.by.Group), joint=TRUE)
+```
+
+So changes over time in Control group which we can follow up with contrasts: polynomials, consecutive, or any custom contrast you want to test. [Note we can index 1:3 to see only the CBT results]
+
+```{r}
+contrast(Time.by.Group, 'poly')[1:3]
+```
+
+
+# References
+Cousineau, D., & O'Brien, F. (2014). Error bars in within-subject designs: a comment on Baguley (2012). *Behavior Research Methods*, 46(4), 1149-1151.
+

@@ -1,0 +1,77 @@
+Name,Age,WeightLoss,PSRStart,PSREnd,Leave,LeaveDay,ID,Sex
+Don Nguyen,28,14,6,7.5,FALSE,,1,M
+Clarence Gilmer,35,40,7.2,7.9,FALSE,,2,M
+Angel Rodriguez,37,33,7.3,8.1,FALSE,,3,M
+Nicklas Lautakoski,30,22,7.3,8.1,FALSE,,4,M
+Julio Castano,28,,7.4,4.1,TRUE,5,5,M
+Matt Wright,32,36,7.8,8.7,FALSE,,6,M
+Matt Alexander,33,25,6.6,7.2,FALSE,,7,M
+Aaron Phillips,37,25,6.6,7.4,FALSE,,8,M
+Lee Trew,33,18,7.6,8.4,FALSE,,9,M
+Greg Wells,35,30,7.2,8,FALSE,,10,M
+Steven Lee Hall,32,25,8,8.6,FALSE,,11,M
+Jeremy McCaa,38,18,7.3,6.1,TRUE,13,12,M
+Dustin Hobbs,30,25,6.1,6.1,FALSE,,13,M
+Joe Brandl,55,21,7.1,8,FALSE,,14,M
+Trent Nielsen,44,22,7.4,8.2,FALSE,,15,M
+Gary Underhill,52,8,7.1,5.3,TRUE,5,16,M
+Jason,31,8,6.2,7.1,FALSE,,17,M
+Brandon,28,25,6.8,6.1,TRUE,14,18,M
+Charlie,52,25,7.2,7.5,FALSE,,19,M
+Darrin,33,6,7.8,8.2,FALSE,,20,M
+Trenton,35,15,7.9,8.2,FALSE,,21,M
+Matt Strutzel,24,28,7.1,7.7,FALSE,,22,M
+Michael Jefferson,32,20,5.9,5.7,TRUE,12,23,M
+Joshua Bell,28,,6.1,4.3,TRUE,5,24,M
+Hakim Isler,36,36,6.8,7.4,FALSE,,25,M
+Chris Fischer,38,21,7.1,7.9,FALSE,,26,M
+Tom McElroy,36,30,8.4,7.9,FALSE,,27,M
+Adam,29,25,7.3,7.8,FALSE,,28,M
+Tom Touw,40,24,6.4,5.4,FALSE,,29,M
+Justin Bullard,29,28,7.6,7.8,FALSE,,30,M
+Luke McLaughlin,27,25,8.1,8.3,FALSE,,31,M
+Vincent Pinto,49,20,8.2,7.6,TRUE,16,32,M
+Fernando,33,31,7.1,6.9,FALSE,,33,M
+Leonard Cassidy,34,21,7.2,7.4,FALSE,,34,M
+Keith Bausch,46,,6.3,4.5,TRUE,11,35,M
+Jeff Zaugch,26,31,7,7.3,FALSE,,36,M
+Tyler,29,,7,4.4,TRUE,5,37,M
+EJ,48,44,8.2,9.1,FALSE,,38,M
+Amber Hargrove,23,,7.4,,TRUE,10,1,F
+Bree Walker,30,,6.9,4.8,TRUE,14,2,F
+Nicole Terry,27,20,5.9,6.1,FALSE,,3,F
+Laura Thompson-Nelson,47,,6.1,4.9,TRUE,7,4,F
+Tawny Lynn,29,21,7.2,7.9,FALSE,,5,F
+Lindsay Boisclair,32,20,6.1,6.5,FALSE,,6,F
+Karen Coffee,51,12,6.3,7.2,FALSE,,7,F
+Kacie Cleveland,30,14,4.8,6.4,FALSE,,8,F
+Stacey Osorio,35,5,6.2,6.2,TRUE,8,9,F
+Cassie Turner,23,21,6.7,7.8,FALSE,,10,F
+Chalese Meyer,26,24,6.3,6.7,FALSE,,11,F
+Cassidy Flynn,26,9,6.1,4.9,TRUE,13,12,F
+Tara Skubella,41,16,6.8,7.6,FALSE,,13,F
+Andrea Lopez,29,7.5,6.6,7.5,FALSE,,14,F
+Annie Foley,38,,6.1,4.5,TRUE,4,15,F
+Kim Kelly,23,23,6.2,7,FALSE,,16,F
+Amanda Kaye,32,5,4.3,6.8,FALSE,,17,F
+Robin,32,16,6.8,6.1,TRUE,14,18,F
+Dani,25,14,6.9,7.5,FALSE,,19,F
+Angela,36,15,6.1,6.3,FALSE,,20,F
+Jen,30,25,6.4,6.9,FALSE,,21,F
+Honora Bowen,28,18,7.6,7.2,TRUE,16,22,F
+Ashley Burns,25,,4.7,3.7,TRUE,2,23,F
+Amanda Leigh,,21,5.8,6.3,FALSE,,24,F
+Phaedra Brothers,27,22,6.2,6.9,FALSE,,25,F
+Corinne Kohlen,32,12,6.1,4.9,TRUE,13,26,F
+Lisa Coray,34,26,6.8,7.4,FALSE,,27,F
+Jaclyn,25,18,7.1,7.5,FALSE,,28,F
+Carrie Booze,25,11,6.4,4.8,FALSE,,29,F
+Dani Julien,27,15,7.4,8.1,FALSE,,30,F
+Lindsie Leitelt,30,15,7.6,7.1,FALSE,,31,F
+Sabrina Mergenthaler,30,10,6.7,7.5,TRUE,20,32,F
+Samantha,38,21,6.8,7,FALSE,,33,F
+Shannon Thomas,38,20,6.9,7.1,FALSE,,34,F
+Alana Barfield,35,,6.1,7,FALSE,,35,F
+Eva Lynne Rupert,33,23,7.2,7.4,FALSE,,36,F
+AK,31,,6.7,4.3,TRUE,4,37,F
+Laura,28,12,8.2,9.1,FALSE,,38,F
